@@ -10,7 +10,6 @@
 ![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)
 
 ## 📚 Table of Contents
-
 - [Executive Summary](#executive-summary)
 - [Introduction](#introduction)
   - [The Quantum Revolution in Database Management](#the-quantum-revolution-in-database-management)
