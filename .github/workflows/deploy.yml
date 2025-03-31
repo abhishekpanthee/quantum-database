@@ -25,15 +25,24 @@ jobs:
       - name: Generate HTML from README.md
         run: python generate_pages.py
 
-      - name: Commit and Push Changes
+      - name: Debug: Check Generated Files
+        run: |
+          ls -lah
+          cat index.html || echo "index.html NOT FOUND!"
+
+      - name: Switch to `gh-pages` Branch and Commit Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if gh-pages branch exists, otherwise create it
           git fetch origin gh-pages || git checkout --orphan gh-pages
           git checkout gh-pages
+
+          # Copy generated files
           touch .nojekyll
           git add .nojekyll index.html
-          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update index.html from README.md"
+          git commit -m "Auto-update index.html from README.md" || echo "No changes to commit"
           git push origin gh-pages --force
 
   deploy:
@@ -41,8 +50,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout `gh-pages` Branch
         uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Debug: Verify `gh-pages` Contents Before Deploy
+        run: ls -lah
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -51,3 +65,4 @@ jobs:
           publish_branch: gh-pages
           publish_dir: .
           keep_files: true
+          force_orphan: true
