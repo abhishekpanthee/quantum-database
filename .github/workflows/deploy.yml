@@ -29,9 +29,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B gh-pages
           git add index.html
           git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update index.html from README.md"
-          git push
+          git push origin gh-pages --force
+
 
   deploy:
     needs: build
