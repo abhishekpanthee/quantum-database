@@ -1,71 +1,49 @@
-name: Generate and Deploy GitHub Pages
+name: Generate and Deploy HTML from README
 
 on:
   push:
     paths:
-      - "README.md"
-  workflow_dispatch:
+      - 'README.md'
+    branches:
+      - main # Only triggers on pushes to main
 
 jobs:
-  build:
+  generate_and_deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set Up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
-      - name: Install Dependencies
-        run: pip install markdown beautifulsoup4
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install beautifulsoup4 markdown
 
-      - name: Generate HTML from README.md
-        run: python generate_pages.py
+    - name: Generate HTML
+      run: python generate_pages.py
 
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v3
+      with:
+        ref: gh-pages
 
-      - name: Ensure Clean Working Tree & Switch to `gh-pages`
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    - name: Copy index.html to gh-pages
+      run: |
+        cp index.html ./
 
-          # Stash untracked files to prevent conflicts
-          git stash push --include-untracked -m "Saving untracked files"
+    - name: Configure Git
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
 
-          # Fetch latest `gh-pages` or create it
-          git fetch origin gh-pages || git checkout --orphan gh-pages
-          git checkout gh-pages
-
-          # Restore the stashed `index.html`
-          git stash pop || echo "Nothing to pop from stash"
-
-          # Ensure `.nojekyll` exists
-          touch .nojekyll
-
-          # Add and commit changes
-          git add .nojekyll index.html
-          git commit -m "Auto-update index.html from README.md" || echo "No changes to commit"
-          git push origin gh-pages --force
-
-
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout `gh-pages` Branch
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: .
-          keep_files: true
-          force_orphan: true
+    - name: Commit and push changes to gh-pages
+      run: |
+        git add index.html
+        git commit -m "Update index.html from README.md change"
+        git push origin gh-pages
