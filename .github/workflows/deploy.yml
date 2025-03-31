@@ -31,19 +31,22 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clean any untracked files (like index.html)
-          git reset --hard
-          git clean -fd
-
-          # Fetch or create `gh-pages` branch
+          # Ensure the latest `gh-pages` branch is fetched
           git fetch origin gh-pages || git checkout --orphan gh-pages
           git checkout gh-pages
 
-          # Copy generated files
+          # Copy the new index.html without removing it
+          cp index.html index.html.new
+
+          # Ensure `.nojekyll` exists
           touch .nojekyll
+
+          # Add changes
+          mv index.html.new index.html
           git add .nojekyll index.html
           git commit -m "Auto-update index.html from README.md" || echo "No changes to commit"
           git push origin gh-pages --force
+
 
   deploy:
     needs: build
