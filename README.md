@@ -122,8 +122,6 @@ Please open an issue if you encounter bugs, have suggestions, or need help. You 
 ## Acknowledgments
 
 - [Cirq](https://quantumai.google/cirq) - The quantum computing framework used in this project.
-- Any other libraries, tools, or contributors you want to acknowledge.
-
 
 
 
