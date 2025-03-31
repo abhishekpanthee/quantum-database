@@ -428,7 +428,7 @@ def generate_html(md_file, output_file):
                 <a href='https://twitter.com/abhishepanthee' target='_blank' title='Twitter'><i class="fab fa-twitter"></i></a>
                 <a href='https://linkedin.com/in/abhishekpanthee' target='_blank' title='LinkedIn'><i class="fab fa-linkedin"></i></a>
             </div>
-            &copy; 2025 Codecrumbs404-Inc. All Rights Reserved.
+            &copy; 2025 Abhishek Panthee. All Rights Reserved.
         </footer>
     </body>
     </html>
