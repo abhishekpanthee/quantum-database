@@ -25,10 +25,6 @@ jobs:
       - name: Generate HTML from README.md
         run: python generate_pages.py
 
-      - name: Debug: Check Generated Files
-        run: |
-          ls -lah
-          cat index.html || echo "index.html NOT FOUND!"
 
       - name: Switch to `gh-pages` Branch and Commit Changes
         run: |
@@ -54,9 +50,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: gh-pages
-
-      - name: Debug: Verify `gh-pages` Contents Before Deploy
-        run: ls -lah
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
