@@ -26,12 +26,16 @@ jobs:
         run: python generate_pages.py
 
 
-      - name: Switch to `gh-pages` Branch and Commit Changes
+      - name: Ensure Clean Working Tree & Switch to `gh-pages`
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Check if gh-pages branch exists, otherwise create it
+          # Clean any untracked files (like index.html)
+          git reset --hard
+          git clean -fd
+
+          # Fetch or create `gh-pages` branch
           git fetch origin gh-pages || git checkout --orphan gh-pages
           git checkout gh-pages
 
