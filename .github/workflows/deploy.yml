@@ -6,6 +6,7 @@ on:
       - 'README.md'
     branches:
       - main # Only triggers on pushes to main
+  workflow_dispatch: # Manually trigger the workflow
 
 jobs:
   generate_and_deploy:
@@ -26,7 +27,7 @@ jobs:
         pip install beautifulsoup4 markdown
 
     - name: Generate HTML
-      run: python generate_pages.py
+      run: python generate_html.py
 
     - name: Checkout gh-pages branch
       uses: actions/checkout@v3
@@ -45,5 +46,5 @@ jobs:
     - name: Commit and push changes to gh-pages
       run: |
         git add index.html
-        git commit -m "Update index.html from README.md change"
+        git commit -m "Update index.html from README.md change or manual trigger"
         git push origin gh-pages
