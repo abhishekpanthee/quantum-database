@@ -3208,3 +3208,99 @@ GROUP BY QUANTUM_CLUSTER(structure, 5);
 - `QUANTUM_SEARCH(table, condition)`: Apply Grover's search algorithm
 - `QUANTUM_OPTIMIZATION(expression, constraints)`: Apply QAOA
 - `QUANTUM_CLASSIFICATION(features, labels, test_data)`: Quantum ML
+
+
+I'll continue expanding these sections with more detailed explanations for each topic:
+
+## Complex Queries
+
+### Quantum Search Implementation
+- **Implementing Grover's algorithm** - Step-by-step guide for implementing quantum search using Grover's algorithm, including circuit construction, oracle design, and amplitude amplification
+- **Custom oracle construction** - Techniques for building problem-specific oracle functions that mark solutions to your specific database queries
+- **Amplitude amplification tuning** - How to determine the optimal number of Grover iterations based on estimated solution density
+- **Hybrid search pipelines** - Frameworks for combining classical filtering with quantum search to tackle larger datasets than quantum hardware can directly process
+- **Fault-tolerant considerations** - Modifications needed when implementing quantum search on error-prone NISQ devices versus future fault-tolerant quantum computers
+
+### Multi-table Joins
+- **Quantum join algorithms** - Quantum circuits for inner, outer, and cross joins with analysis of quantum resource requirements
+- **Entanglement-based optimization** - How to leverage quantum entanglement to create superpositions of joined records for parallel processing
+- **Join selectivity estimation** - Techniques for estimating join cardinality to optimize quantum circuit allocation
+- **Distributed join execution** - Methods for breaking down large joins across multiple quantum processors while maintaining result coherence
+- **Join result verification** - Post-processing techniques to validate quantum join results against expected constraints
+
+### Subqueries and Nested Queries
+- **Quantum circuit composition** - How to design modular quantum circuits that can be nested to represent complex query structures
+- **Resource estimation formulas** - Mathematical models to calculate qubit and gate requirements for queries of varying complexity
+- **Execution scheduling** - Optimizing the order of operations for nested queries to minimize intermediate result storage
+- **Correlated subquery optimizations** - Special techniques for queries where inner query references columns from outer query
+- **Quantum memory management** - Strategies for handling intermediate results when processing multi-level nested queries
+
+## Distributed Database
+
+### Setting Up a Cluster
+- **Quantum network topology design** - Optimal arrangements of quantum processors and communication channels based on workload patterns
+- **Entanglement distribution protocols** - Methods for establishing and maintaining high-fidelity entanglement across physically separated quantum processors
+- **Synchronization mechanisms** - Protocols for maintaining consistent quantum states across distributed nodes
+- **Cluster configuration templates** - Reference architectures for small, medium and large-scale deployments with resource allocation guidelines
+- **Fault isolation zones** - Designing cluster boundaries to contain failures and prevent quantum decoherence from cascading across the system
+
+### Distributed Queries
+- **Query decomposition techniques** - Algorithms for breaking down complex queries into components that can execute on different quantum processors
+- **Quantum data sharding strategies** - Methods for distributing quantum data across nodes based on access patterns, including hash, range, and hybrid approaches
+- **Distributed execution coordination** - Protocols for orchestrating multi-stage query execution across quantum and classical resources
+- **Results aggregation methods** - Techniques for efficiently combining partial results from distributed quantum operations
+- **Network traffic optimization** - Strategies to minimize quantum and classical communication overhead in distributed query processing
+
+### Scaling Operations
+- **Horizontal scaling procedures** - Step-by-step guide for adding new nodes to a quantum database cluster while maintaining operational continuity
+- **Vertical scaling considerations** - When and how to upgrade individual quantum processors versus adding more nodes
+- **Workload-based scaling triggers** - Metrics and thresholds that indicate when scaling operations should be initiated
+- **Geographic distribution** - Techniques for distributing quantum database resources across multiple physical locations
+- **Scale testing methodologies** - Procedures for validating system performance after scaling operations
+
+## Secure Storage
+
+### Quantum Encryption Setup
+- **QKD implementation walkthrough** - Detailed steps for implementing Quantum Key Distribution for secure communication between database components
+- **Key management lifecycle** - Processes for quantum key generation, distribution, rotation, and revocation
+- **Hybrid cryptography models** - Frameworks combining quantum-resistant classical algorithms with quantum encryption techniques
+- **Hardware security integration** - Guidelines for leveraging quantum random number generators and specialized encryption hardware
+- **Encryption performance tuning** - Optimizing encryption operations to minimize impact on query performance
+
+### Access Control Configuration
+- **Quantum authentication protocols** - Implementation details for quantum-based authentication methods that leverage quantum properties for enhanced security
+- **Multi-level security model** - Framework for implementing hierarchical access controls with quantum verification
+- **Dynamic access policy enforcement** - Mechanisms for real-time evaluation of access permissions based on context
+- **Quantum-secured audit logging** - Methods for creating tamper-evident audit trails using quantum cryptographic techniques
+- **Delegation and temporary access** - Procedures for granting and revoking temporary access privileges securely
+
+### Secure Multi-party Computation
+- **Privacy-preserving query protocols** - Techniques allowing multiple parties to query each other's data without revealing sensitive information
+- **Blind quantum computation** - Methods enabling users to run queries on quantum hardware without revealing the query specifics to the hardware operator
+- **Homomorphic encryption integration** - Approaches for computing on encrypted quantum data without decryption
+- **Zero-knowledge verification** - Protocols that prove query results are correct without revealing underlying data
+- **Security verification framework** - Methods for formally proving the security guarantees of multi-party quantum computation protocols
+
+## Integration Examples
+
+### Classical Database Integration
+- **Bridge architecture patterns** - Reference designs for connecting quantum and classical database systems
+- **Data synchronization mechanisms** - Methods for maintaining consistency between quantum and classical data stores
+- **Query routing logic** - Decision frameworks for directing queries to quantum or classical execution based on query characteristics
+- **Schema translation tools** - Utilities for mapping classical database schemas to quantum data structures
+- **Transactional consistency** - Techniques for maintaining ACID properties across hybrid quantum-classical operations
+
+### Application Integration
+- **Client SDK architecture** - Design patterns for application libraries that abstract quantum database operations
+- **Error handling strategies** - Comprehensive approach to managing and recovering from quantum operation failures
+- **Connection management** - Best practices for establishing, maintaining, and pooling connections to quantum database resources
+- **Batch processing design** - Frameworks for efficient processing of multiple operations in quantum-classical environments
+- **Transaction models** - Implementation details for different transaction isolation levels in quantum database context
+
+### Analytics Integration
+- **Quantum-enhanced analytics pipelines** - Reference architectures for integrating quantum database operations into analytics workflows
+- **Quantum feature extraction** - Techniques for using quantum algorithms to identify patterns and features in large datasets
+- **Hybrid analytical queries** - Methods for executing complex analytical operations across quantum and classical processing units
+- **Real-time quantum analytics** - Approaches for low-latency analytical processing using quantum resources
+- **Visualization approaches** - Tools and techniques for representing quantum data and query results in intuitive visual formats
+
