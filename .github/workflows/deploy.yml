@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'README.md'
+      - '.github/workflows/generate_and_deploy.yml'  # Trigger on workflow file changes
     branches:
       - main # Only triggers on pushes to main
   workflow_dispatch: # Manually trigger the workflow
@@ -41,12 +42,12 @@ jobs:
 
     - name: Configure Git
       run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
 
     - name: Commit and push changes to gh-pages
       run: |
         cd gh-pages-checkout/
         git add index.html
-        git commit -m "Update index.html from README.md change or manual trigger"
+        git commit -m "Update index.html from README.md or workflow file change" || echo "No changes to commit"
         git push origin gh-pages
