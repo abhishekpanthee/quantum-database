@@ -29,11 +29,12 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B gh-pages
-          git add index.html
+          git fetch origin gh-pages || git checkout --orphan gh-pages
+          git checkout gh-pages
+          touch .nojekyll
+          git add .nojekyll index.html
           git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update index.html from README.md"
           git push origin gh-pages --force
-
 
   deploy:
     needs: build
@@ -49,3 +50,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: .
+          keep_files: true
