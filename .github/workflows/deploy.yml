@@ -27,7 +27,7 @@ jobs:
         pip install beautifulsoup4 markdown
 
     - name: Generate HTML
-      run: python generate_html.py
+      run: python generate_pages.py
 
     - name: Checkout gh-pages branch
       uses: actions/checkout@v3
