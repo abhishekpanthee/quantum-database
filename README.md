@@ -2129,15 +2129,15 @@ Details of supported quantum computing hardware and requirements.
 - Authentication credentials for quantum services
 - Resource quota management
 
-## Installation Methods
+## Installation Methods (the pakages are yet not released in pip as well as docker so you have to use from github)
 
 Various methods for installing the quantum database system.
 
 ### Package Installation
 
-Installation using pre-built packages.
+Installation using pre-built packages. 
 
-#### Package Managers
+#### Package Managers  (the pakages are yet not released in pip as well as docker  so you have to use from github)
 
 - **pip**: `pip install quantum-database`
 - **conda**: `conda install -c quantum-channel quantum-database`
@@ -2179,7 +2179,7 @@ python -m pip install -e .
 - Optimization settings
 - Hardware-specific optimizations
 
-### Docker Installation
+### Docker Installation ( the pakages are yet not released in pip as well as docker  so you have to use from github)
 
 Installation using Docker containers.
 
@@ -2400,11 +2400,11 @@ qdb-admin create-baseline --workload typical --duration 1h
 - Improvement measurement
 - Environmental impact analysis
 
-# Usage Guide
+# Usage Guide ( the pakages are yet not released in pip as well as docker  so you have to use from github)
 
 Comprehensive guide for using the quantum database system, from initial setup to advanced operations.
 
-## Getting Started
+## Getting Started ( the pakages are yet not released in pip as well as docker  so you have to use from github)
 
 First steps for new users of the quantum database system.
 
