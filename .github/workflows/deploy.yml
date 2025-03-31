@@ -31,21 +31,24 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Ensure the latest `gh-pages` branch is fetched
+          # Stash untracked files to prevent conflicts
+          git stash push --include-untracked -m "Saving untracked files"
+
+          # Fetch latest `gh-pages` or create it
           git fetch origin gh-pages || git checkout --orphan gh-pages
           git checkout gh-pages
 
-          # Copy the new index.html without removing it
-          cp index.html index.html.new
+          # Restore the stashed `index.html`
+          git stash pop || echo "Nothing to pop from stash"
 
           # Ensure `.nojekyll` exists
           touch .nojekyll
 
-          # Add changes
-          mv index.html.new index.html
+          # Add and commit changes
           git add .nojekyll index.html
           git commit -m "Auto-update index.html from README.md" || echo "No changes to commit"
           git push origin gh-pages --force
+
 
 
   deploy:
