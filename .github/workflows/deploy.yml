@@ -27,7 +27,7 @@ jobs:
         pip install beautifulsoup4 markdown
 
     - name: Generate HTML
-      run: python generate_pages.py
+      run: python generate_html.py
 
     - name: Checkout gh-pages branch
       uses: actions/checkout@v3
@@ -41,8 +41,8 @@ jobs:
 
     - name: Configure Git
       run: |
-        git config --local user.email "actions@github.com"
-        git config --local user.name "GitHub Actions"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
 
     - name: Commit and push changes to gh-pages
       run: |
