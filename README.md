@@ -2125,16 +2125,16 @@ Details of supported quantum computing hardware and requirements.
 - Authentication credentials for quantum services
 - Resource quota management
 
-## Installation Methods (the pakages are yet not released in pip as well as docker so you have to use from github)
-
+## Installation Methods 
+***!!!!!!!!!!!!!(the packages are yet not released in pip as well as docker so you have to use from github)!!!!!!!!!!**
 Various methods for installing the quantum database system.
 
 ### Package Installation
 
 Installation using pre-built packages. 
 
-#### Package Managers  (the pakages are yet not released in pip as well as docker  so you have to use from github)
-
+#### Package Managers  
+ ***!!!!!!!!!!!!!(the packages are yet not released in pip as well as docker so you have to use from github)!!!!!!!!!!**
 - **pip**: `pip install quantum-database`
 - **conda**: `conda install -c quantum-channel quantum-database`
 - **apt/yum**: Repository setup and installation instructions
@@ -2175,8 +2175,9 @@ python -m pip install -e .
 - Optimization settings
 - Hardware-specific optimizations
 
-### Docker Installation ( the pakages are yet not released in pip as well as docker  so you have to use from github)
+### Docker Installation 
 
+***!!!!!!!!!!!!!(the packages are yet not released in pip as well as docker so you have to use from github)!!!!!!!!!!**
 Installation using Docker containers.
 
 #### Available Images
@@ -2396,7 +2397,8 @@ qdb-admin create-baseline --workload typical --duration 1h
 - Improvement measurement
 - Environmental impact analysis
 
-# Usage Guide ( the pakages are yet not released in pip as well as docker  so you have to use from github)
+# Usage Guide 
+***!!!!!!!!!!!!!(the packages are yet not released in pip as well as docker so you have to use from github)!!!!!!!!!!**
 
 Comprehensive guide for using the quantum database system, from initial setup to advanced operations.
 
@@ -2748,11 +2750,9 @@ Methods for scaling the quantum database to handle increased load.
 - Workload-specific resource allocation
 - Cost optimization strategies
 
-# Quantum Database System
 
-A comprehensive quantum database system that leverages quantum computing for superior data processing, searching, and security.
 
-# API Reference
+## API Reference
 
 ### Core API
 
