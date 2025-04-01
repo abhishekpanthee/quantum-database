@@ -9,6 +9,18 @@
 ![Coverage](https://img.shields.io/badge/coverage-74%25-yellow.svg)
 ![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)
 
+<table>
+  <tr>
+    <td><img src="https://res.cloudinary.com/dpwglhp5u/image/upload/v1743495531/image-Photoroom_1_alsh4y.png" width="200"></td>
+    <td>
+      <h2>📄 Documentation Incomplete 😩</h2>
+      <p>Keeping up with documentation is exhausting, and it's not fully complete. If you want to help, feel free to contribute! Any improvements are welcome. 🚀</p>
+    </td>
+    <td><img src="https://res.cloudinary.com/dpwglhp5u/image/upload/v1743495531/image-Photoroom_crcqrq.png" width="200"></td>
+  </tr>
+</table>
+
+
 ## 📚 Table of Contents
 - [Executive Summary](#executive-summary)
 - [Introduction](#introduction)
@@ -5182,7 +5194,15 @@ Addressing quantum computing expertise requirements:
 - **Documentation Importance**: Comprehensive documentation for knowledge transfer
 
 
-## Documentation Incomplete 😩  
+<table>
+  <tr>
+    <td><img src="https://res.cloudinary.com/dpwglhp5u/image/upload/v1743495531/image-Photoroom_1_alsh4y.png" width="200"></td>
+    <td>
+      <h2>📄 Documentation Incomplete 😩</h2>
+      <p>Keeping up with documentation is exhausting, and it's not fully complete. If you want to help, feel free to contribute! Any improvements are welcome. 🚀</p>
+    </td>
+    <td><img src="https://res.cloudinary.com/dpwglhp5u/image/upload/v1743495531/image-Photoroom_crcqrq.png" width="200"></td>
+  </tr>
+</table>
 
-Keeping up with documentation is exhausting, and it's not fully complete. If you want to help, feel free to contribute! Any improvements are welcome. 🚀  
 
