@@ -351,4 +351,258 @@ class NodeManager:
                     }
                     
                     self.logger.info(f"Announcing new leader before shutdown: {leadership_data}")
-                    # In a real implementation, would broadcast to other
+                    # In a real implementation, would broadcast to other nodes
+            
+            self.logger.info(f"Node {self.node_id} shutting down")
+            time.sleep(1)  # Allow time for messages to be sent
+            
+    def join_cluster(self, seed_node_address: str):
+        """
+        Join an existing cluster using a seed node.
+        
+        Args:
+            seed_node_address (str): Address of a node in the existing cluster
+        """
+        with self.lock:
+            self.logger.info(f"Joining cluster via seed node: {seed_node_address}")
+            
+            # In a real implementation, would contact the seed node
+            # For simulation, we'll just pretend we received cluster state
+            
+            # Request cluster state from seed
+            # cluster_state = self._request_cluster_state(seed_node_address)
+            
+            # Simulate receiving cluster state
+            simulated_cluster_state = {
+                "nodes": {
+                    "node1": {"status": "active", "resources": self._get_resources()},
+                    "node2": {"status": "active", "resources": self._get_resources()},
+                },
+                "leader_id": "node1"
+            }
+            
+            # Update our view of the cluster
+            self.nodes.update(simulated_cluster_state["nodes"])
+            self.leader_id = simulated_cluster_state["leader_id"]
+            self.is_leader = (self.leader_id == self.node_id)
+            
+            # Announce presence to the cluster
+            self._broadcast_join_announcement()
+            
+    def _broadcast_join_announcement(self):
+        """Announce this node's joining to all other nodes."""
+        with self.lock:
+            join_data = {
+                "node_id": self.node_id,
+                "resources": self._get_resources(),
+                "timestamp": time.time()
+            }
+            
+            self.logger.info(f"Broadcasting join announcement: {join_data}")
+            # In a real implementation, would broadcast to other nodes
+            
+    def handle_join_announcement(self, node_id: str, resources: Dict, timestamp: float):
+        """
+        Handle a join announcement from a new node.
+        
+        Args:
+            node_id (str): ID of the new node
+            resources (Dict): Resources of the new node
+            timestamp (float): Time of the announcement
+        """
+        with self.lock:
+            if node_id not in self.nodes:
+                self.nodes[node_id] = {"status": "active", "resources": resources}
+                self.last_heartbeats[node_id] = timestamp
+                self.logger.info(f"Added new node to cluster: {node_id}")
+                
+                # If we're the leader, acknowledge the new node
+                if self.is_leader:
+                    self._send_cluster_state_to_node(node_id)
+    
+    def _send_cluster_state_to_node(self, target_node_id: str):
+        """
+        Send current cluster state to a specific node.
+        
+        Args:
+            target_node_id (str): ID of the node to send state to
+        """
+        with self.lock:
+            cluster_state = {
+                "nodes": self.nodes,
+                "leader_id": self.leader_id
+            }
+            
+            self.logger.info(f"Sending cluster state to {target_node_id}")
+            # In a real implementation, would send to the specific node
+    
+    def distribute_quantum_circuit(self, circuit: 'cirq.Circuit', 
+                                  target_nodes: Optional[List[str]] = None) -> Dict[str, 'cirq.Circuit']:
+        """
+        Distribute a quantum circuit across nodes for execution.
+        
+        Args:
+            circuit (cirq.Circuit): The quantum circuit to distribute
+            target_nodes (Optional[List[str]]): Specific nodes to target, or None for auto-selection
+            
+        Returns:
+            Dict[str, cirq.Circuit]: Mapping of node IDs to subcircuits
+        """
+        with self.lock:
+            # If no target nodes specified, choose nodes with available resources
+            if target_nodes is None:
+                target_nodes = [
+                    node_id for node_id, info in self.nodes.items()
+                    if info["status"] == "active" and 
+                    info["resources"].get("qubits_available", 0) > 0
+                ]
+            
+            # Count total available qubits
+            available_qubits = sum(
+                self.nodes[node_id]["resources"].get("qubits_available", 0)
+                for node_id in target_nodes if node_id in self.nodes
+            )
+            
+            # Get circuit qubit count (in a real implementation, would analyze the circuit)
+            # For demo, we'll just count unique qubits
+            circuit_qubits = len(set(q for op in circuit.all_operations() for q in op.qubits))
+            
+            if available_qubits < circuit_qubits:
+                self.logger.error(f"Not enough qubits for circuit: {available_qubits} < {circuit_qubits}")
+                return {}
+            
+            # In a real implementation, would analyze circuit dependencies and partition
+            # For demo, we'll just split by moment
+            moments = list(circuit.moments)
+            nodes_count = len(target_nodes)
+            
+            distributed_circuits = {}
+            for i, node_id in enumerate(target_nodes):
+                # Simple distribution: each node gets a consecutive slice of moments
+                start_idx = i * len(moments) // nodes_count
+                end_idx = (i + 1) * len(moments) // nodes_count
+                
+                if start_idx == end_idx:
+                    # No moments for this node
+                    continue
+                    
+                node_moments = moments[start_idx:end_idx]
+                distributed_circuits[node_id] = cirq.Circuit(node_moments)
+            
+            return distributed_circuits
+    
+    def collect_execution_results(self, node_results: Dict[str, Dict]) -> Dict:
+        """
+        Collect and aggregate execution results from multiple nodes.
+        
+        Args:
+            node_results (Dict[str, Dict]): Results from each node
+            
+        Returns:
+            Dict: Aggregated results
+        """
+        with self.lock:
+            # In a real implementation, would merge and reconcile measurement results
+            # For demo, we'll just combine the dictionaries
+            all_results = {}
+            
+            for node_id, results in node_results.items():
+                for key, value in results.items():
+                    if key in all_results:
+                        # For histograms, combine counts
+                        if isinstance(value, dict) and isinstance(all_results[key], dict):
+                            for k, v in value.items():
+                                all_results[key][k] = all_results[key].get(k, 0) + v
+                        else:
+                            # For other results, just use the latest
+                            all_results[key] = value
+                    else:
+                        all_results[key] = value
+            
+            return all_results
+    
+    def update_resource_usage(self, node_id: str, resource_update: Dict):
+        """
+        Update resource usage information for a node.
+        
+        Args:
+            node_id (str): ID of the node to update
+            resource_update (Dict): Resource changes to apply
+        """
+        with self.lock:
+            if node_id in self.nodes and self.nodes[node_id]["status"] == "active":
+                resources = self.nodes[node_id]["resources"]
+                
+                # Update resource fields
+                for key, value in resource_update.items():
+                    if key in resources:
+                        resources[key] = value
+                
+                self.logger.debug(f"Updated resources for node {node_id}: {resource_update}")
+    
+    def rebalance_resources(self):
+        """Rebalance workload across active nodes in the cluster."""
+        with self.lock:
+            if not self.is_leader:
+                self.logger.info("Only leader can rebalance resources")
+                return
+                
+            self.logger.info("Starting cluster resource rebalancing")
+            
+            # Get active nodes and their workloads
+            active_nodes = {
+                node_id: info for node_id, info in self.nodes.items()
+                if info["status"] == "active"
+            }
+            
+            if len(active_nodes) <= 1:
+                self.logger.info("Not enough active nodes for rebalancing")
+                return
+                
+            # Calculate available resources
+            node_resources = {}
+            for node_id, info in active_nodes.items():
+                resources = info["resources"]
+                total = resources.get("qubits", 0)
+                available = resources.get("qubits_available", 0)
+                used = total - available
+                util = used / total if total > 0 else 0
+                
+                node_resources[node_id] = {
+                    "total": total,
+                    "available": available,
+                    "used": used,
+                    "utilization": util
+                }
+            
+            # Find over and under utilized nodes
+            avg_util = sum(res["utilization"] for res in node_resources.values()) / len(node_resources)
+            threshold = 0.2  # 20% deviation from average
+            
+            overloaded = {
+                node_id: res for node_id, res in node_resources.items()
+                if res["utilization"] > avg_util + threshold
+            }
+            
+            underloaded = {
+                node_id: res for node_id, res in node_resources.items()
+                if res["utilization"] < avg_util - threshold
+            }
+            
+            if not overloaded or not underloaded:
+                self.logger.info("No significant imbalance detected")
+                return
+                
+            # In a real implementation, would calculate jobs to migrate
+            # and coordinate the migration process
+            
+            self.logger.info(f"Rebalance plan created: "
+                           f"move workload from {list(overloaded.keys())} "
+                           f"to {list(underloaded.keys())}")
+            
+            # Simulate rebalancing effect
+            # In real implementation, would actually move workloads
+            for over_id in overloaded:
+                for under_id in underloaded:
+                    # Just log what would happen
+                    self.logger.info(f"Would move workload from {over_id} to {under_id}")
