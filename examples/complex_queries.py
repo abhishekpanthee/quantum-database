@@ -1,228 +1,261 @@
-
 # examples/complex_queries.py
 
 """
 Complex queries example for quantum database.
-
-This example demonstrates advanced quantum database operations including:
-- Quantum joins
-- Quantum aggregations
-- Superposition queries
-- Quantum indexing
 """
 
 import time
+import uuid
+import logging
 import numpy as np
-from interface.db_client import QuantumDatabaseClient
-from interface.query_language import QueryBuilder
-from utilities.benchmarking import benchmark_query
-from utilities.visualization import VisualizeCircuit
+from qndb.interface.db_client import QuantumDatabaseClient
+from qndb.utilities.benchmarking import BenchmarkRunner
+from qndb.security.access_control import Permission, ResourceType
 
 def run_complex_queries_example():
-    """
-    Run complex queries example for the quantum database.
-    """
+    # Reduce logging noise
+    logging_level = logging.getLogger().level
+    logging.getLogger().setLevel(logging.ERROR)
+    
     print("=== Quantum Database Complex Queries Example ===")
     
-    # Connect to the quantum database
-    client = QuantumDatabaseClient()
-    connection = client.connect(host="localhost", port=5000)
-    print("Connected to quantum database")
+    config = {
+        "host": "localhost",
+        "port": 5000,
+        "max_connections": 10,
+        "timeout": 30,
+        "quantum_backend": "simulator"
+    }
     
-    # Create and populate sample tables if they don't exist
-    setup_database(connection)
+    client = None
     
-    # Example 1: Quantum Join with Grover's Algorithm
-    print("\n--- Example 1: Quantum Join with Grover's Algorithm ---")
-    quantum_join_query = """
-    SELECT c.customer_name, o.order_date, o.amount
-    FROM customers c
-    QUANTUM JOIN orders o ON c.customer_id = o.customer_id
-    WHERE o.amount > 1000
-    USING quantum_algorithm='grover'
-    """
-    
-    # Benchmark the quantum join
-    print("Benchmarking quantum join...")
-    benchmark_result = benchmark_query(connection, quantum_join_query)
-    print(f"Quantum join completed in {benchmark_result.execution_time:.6f} seconds")
-    print(f"Classical equivalent would take approximately {benchmark_result.classical_estimate:.6f} seconds")
-    print(f"Quantum speedup: {benchmark_result.speedup_factor:.2f}x")
-    
-    # Execute the join and display results
-    result = connection.execute(quantum_join_query)
-    print("\nJoin results:")
-    for i, record in enumerate(result.records[:5]):
-        print(f"  {record}")
-    if len(result.records) > 5:
-        print(f"  ... and {len(result.records) - 5} more records")
-    
-    # Example 2: Quantum Aggregation in Superposition
-    print("\n--- Example 2: Quantum Aggregation in Superposition ---")
-    agg_query = """
-    SELECT 
-        QUANTUM_AGGREGATE(amount, 'sum') AS total_amount,
-        QUANTUM_AGGREGATE(amount, 'average') AS avg_amount,
-        QUANTUM_AGGREGATE(amount, 'max') AS max_amount
-    FROM orders
-    IN SUPERPOSITION WHERE order_date BETWEEN '2023-01-01' AND '2023-12-31'
-    """
-    
-    result = connection.execute(agg_query)
-    print("Aggregation results:")
-    for key, value in result.records[0].items():
-        print(f"  {key}: {value}")
-    
-    # Visualize the circuit for the aggregation
-    print("\nVisualizing quantum aggregation circuit...")
-    agg_circuit = result.metadata.get("circuit")
-    visualizer = VisualizeCircuit()
-    visualizer.show_circuit(agg_circuit)
-    
-    # Example 3: Complex Query with Quantum Indexing
-    print("\n--- Example 3: Complex Query with Quantum Indexing ---")
-    print("Creating quantum index on orders.amount...")
-    
-    create_index_query = """
-    CREATE QUANTUM INDEX amount_idx ON orders(amount)
-    USING quantum_method='amplitude_encoding'
-    """
-    connection.execute(create_index_query)
-    
-    # Complex query using quantum index
-    indexed_query = """
-    SELECT o.order_id, o.amount, c.customer_name
-    FROM orders o
-    QUANTUM JOIN customers c ON o.customer_id = c.customer_id
-    WHERE o.amount BETWEEN 500 AND 1500
-    ORDER BY o.amount DESC
-    USING quantum_index='amount_idx'
-    LIMIT 5
-    """
-    
-    print("Executing query with quantum index...")
-    result = connection.execute(indexed_query)
-    print("\nResults (using quantum index):")
-    for record in result.records:
-        print(f"  {record}")
-    
-    # Example 4: Quantum Pattern Recognition
-    print("\n--- Example 4: Quantum Pattern Recognition ---")
-    pattern_query = """
-    SELECT customer_id, 
-           QUANTUM_PATTERN_DETECT(
-               purchase_history, 
-               pattern='repeat_purchase', 
-               confidence=0.75
-           ) AS repeat_customer_probability
-    FROM customer_behaviors
-    WHERE first_purchase_date > '2023-01-01'
-    """
-    
-    print("Detecting purchase patterns using quantum algorithm...")
-    result = connection.execute(pattern_query)
-    print("\nPattern detection results:")
-    for i, record in enumerate(result.records[:5]):
-        print(f"  Customer {record['customer_id']}: {record['repeat_customer_probability']:.2f} probability")
-    if len(result.records) > 5:
-        print(f"  ... and {len(result.records) - 5} more records")
-    
-    # Close the connection
-    connection.close()
-    print("\nConnection closed")
-    print("Complex queries example completed")
+    try:
+        # Initialize client
+        print("\nInitializing database client...")
+        client = QuantumDatabaseClient(config)
+        
+        # Create admin user with proper UUID
+        admin_id = str(uuid.uuid4())
+        print(f"\nCreating system admin user (ID: {admin_id})...")
+        client.access_controller.create_user("admin_user", admin_id)
+        client.access_controller.assign_role(admin_id, "admin")
+        
+        # Grant admin permissions
+        client.access_controller.grant_permission(admin_id, "system", Permission.ADMIN)
+        
+        # Connect as admin
+        print("\nConnecting to database as admin...")
+        if not client.connect(username="admin_user"):
+            print("Failed to connect to quantum database")
+            return
+        
+        print("✓ Connected as admin")
+        
+        # Setup database
+        print("\nSetting up database tables...")
+        try:
+            setup_database(client)
+            print("✓ Database setup complete")
+        except Exception as setup_error:
+            print(f"! Database setup failed: {str(setup_error)}")
+            # Continue with example even if setup fails
+        
+        # Run example queries
+        print("\nRunning example queries...")
+        run_example_queries(client)
+        
+    except Exception as e:
+        print(f"\n! Error: {str(e)}")
+    finally:
+        if client:
+            client.disconnect()
+            print("\nConnection closed")
+        # Restore logging level
+        logging.getLogger().setLevel(logging_level)
+        print("\nExample completed")
 
-def setup_database(connection):
-    """
-    Set up sample database tables for the example.
-    """
-    # Create customers table
-    create_customers = """
-    CREATE QUANTUM TABLE IF NOT EXISTS customers (
-        customer_id INT PRIMARY KEY,
-        customer_name TEXT,
-        email TEXT,
-        signup_date DATE
-    ) WITH ENCODING=basis
-    """
-    connection.execute(create_customers)
+def setup_database(client):
+    """Initialize database tables with proper permissions."""
+    # Get the current user ID from the connection
+    user_id = None
+    if hasattr(client, 'connection') and hasattr(client.connection, 'user_id'):
+        username = client.connection.user_id
+        user = client.access_controller.get_user_by_username(username)
+        if user:
+            user_id = user.user_id
     
-    # Create orders table
-    create_orders = """
-    CREATE QUANTUM TABLE IF NOT EXISTS orders (
-        order_id INT PRIMARY KEY,
-        customer_id INT,
-        order_date DATE,
-        amount FLOAT
-    ) WITH ENCODING=amplitude
-    """
-    connection.execute(create_orders)
+    if not user_id:
+        # If we can't get the connected user ID, get it from the users dictionary
+        users = getattr(client.access_controller, 'users', {})
+        if users:
+            user_id = list(users.keys())[-1]  # Get most recent user
     
-    # Create customer behaviors table
-    create_behaviors = """
-    CREATE QUANTUM TABLE IF NOT EXISTS customer_behaviors (
-        customer_id INT PRIMARY KEY,
-        first_purchase_date DATE,
-        purchase_history QUANTUM_VECTOR,
-        visit_frequency FLOAT
-    ) WITH ENCODING=amplitude
-    """
-    connection.execute(create_behaviors)
+    if not user_id:
+        raise ValueError("Could not determine user ID for permissions")
     
-    # Check if data needs to be populated
-    count_query = "SELECT COUNT(*) FROM customers"
-    result = connection.execute(count_query)
+    # Define tables
+    tables = {
+        "customers": """
+        CREATE TABLE customers (
+            customer_id INT,
+            customer_name TEXT,
+            email TEXT,
+            signup_date TEXT
+        )
+        """,
+        "orders": """
+        CREATE TABLE orders (
+            order_id INT,
+            customer_id INT,
+            order_date TEXT,
+            amount FLOAT
+        )
+        """,
+        "customer_behaviors": """
+        CREATE TABLE customer_behaviors (
+            customer_id INT,
+            first_purchase_date TEXT,
+            purchase_vector TEXT,
+            visit_frequency FLOAT
+        )
+        """
+    }
     
-    if result.records[0]["COUNT(*)"] == 0:
-        # Populate with sample data
-        print("Populating database with sample data...")
+    # Create tables and register resources
+    for table_name, create_stmt in tables.items():
+        print(f"Creating {table_name} table...")
+        result = client.execute_query(create_stmt)
+        if not result.get("success"):
+            print(f"! Warning: Failed to create {table_name}: {result.get('error', 'Unknown error')}")
+            continue
         
-        # Insert sample customers
-        for i in range(1, 21):
-            name = f"Customer {i}"
-            email = f"customer{i}@example.com"
-            date = f"2023-{np.random.randint(1, 13):02d}-{np.random.randint(1, 29):02d}"
-            
-            insert_query = f"""
-            INSERT INTO customers (customer_id, customer_name, email, signup_date)
-            VALUES ({i}, '{name}', '{email}', '{date}')
-            """
-            connection.execute(insert_query)
+        # Register resource and grant permissions
+        try:
+            client.access_controller.create_resource(
+                table_name,
+                f"{table_name.capitalize()} Table",
+                ResourceType.TABLE,
+                user_id
+            )
+        except Exception as e:
+            print(f"! Warning: Resource registration failed: {str(e)}")
         
-        # Insert sample orders
-        for i in range(1, 101):
-            customer_id = np.random.randint(1, 21)
-            month = np.random.randint(1, 13)
-            day = np.random.randint(1, 29)
-            amount = np.random.uniform(100, 2000)
-            date = f"2023-{month:02d}-{day:02d}"
-            
-            insert_query = f"""
-            INSERT INTO orders (order_id, customer_id, order_date, amount)
-            VALUES ({i}, {customer_id}, '{date}', {amount:.2f})
-            """
-            connection.execute(insert_query)
-        
-        # Insert sample customer behaviors
-        for i in range(1, 21):
-            month = np.random.randint(1, 13)
-            day = np.random.randint(1, 29)
-            first_date = f"2023-{month:02d}-{day:02d}"
-            
-            # Generate quantum vector for purchase history (simplified for example)
-            vector_data = np.random.random(8).tolist()
-            vector_str = ", ".join([str(v) for v in vector_data])
-            
-            frequency = np.random.uniform(1, 10)
-            
-            insert_query = f"""
-            INSERT INTO customer_behaviors (customer_id, first_purchase_date, purchase_history, visit_frequency)
-            VALUES ({i}, '{first_date}', QUANTUM_VECTOR[{vector_str}], {frequency:.2f})
-            """
-            connection.execute(insert_query)
-            
-        print("Sample data populated successfully")
+        # Grant permissions
+        for perm in [Permission.READ, Permission.WRITE, Permission.CREATE, Permission.EXECUTE]:
+            try:
+                client.access_controller.grant_permission(user_id, table_name, perm)
+            except Exception as e:
+                print(f"! Warning: Permission grant failed: {str(e)}")
+    
+    # Populate sample data
+    print("Populating sample data...")
+    populate_sample_data(client)
+
+def populate_sample_data(client):
+    """Insert sample data into tables."""
+    # Insert customers
+    for i in range(1, 6):  # Reduced to 5 customers for quicker execution
+        query = f"""
+        INSERT INTO customers (customer_id, customer_name, email, signup_date)
+        VALUES ({i}, 'Customer {i}', 'customer{i}@example.com', 
+               '2023-0{i}-01')
+        """
+        result = client.execute_query(query)
+        if not result.get("success"):
+            print(f"! Warning: Failed to insert customer {i}: {result.get('error', 'Unknown error')}")
+    
+    # Insert orders
+    for i in range(1, 11):  # Reduced to 10 orders
+        customer_id = (i % 5) + 1  # Distribute among 5 customers
+        query = f"""
+        INSERT INTO orders (order_id, customer_id, order_date, amount)
+        VALUES ({i}, {customer_id}, 
+               '2023-0{i % 9 + 1}-15',
+               {(i * 250) + 100}.50)
+        """
+        result = client.execute_query(query)
+        if not result.get("success"):
+            print(f"! Warning: Failed to insert order {i}: {result.get('error', 'Unknown error')}")
+    
+    # Insert behaviors - simplified
+    for i in range(1, 6):  # 5 customer behaviors
+        vector_str = ",".join([f"{(i * 0.1 + j * 0.05):.2f}" for j in range(4)])
+        query = f"""
+        INSERT INTO customer_behaviors (customer_id, first_purchase_date, 
+                                      purchase_vector, visit_frequency)
+        VALUES ({i}, '2023-0{i}-01',
+               '{vector_str}', 
+               {i * 1.5})
+        """
+        result = client.execute_query(query)
+        if not result.get("success"):
+            print(f"! Warning: Failed to insert behavior {i}: {result.get('error', 'Unknown error')}")
+
+def run_example_queries(client):
+    """Execute and demonstrate example queries."""
+    # Example 1: Basic JOIN query (instead of Quantum Join)
+    print("\n--- Example 1: Join Query ---")
+    query = """
+    SELECT * FROM customers
+    WHERE customer_id = 1
+    """
+    execute_and_display_query(client, query, "Basic Customer Query")
+    
+    # Example 2: Basic aggregation
+    print("\n--- Example 2: Order Query ---")
+    query = """
+    SELECT * FROM orders
+    WHERE customer_id = 1
+    """
+    execute_and_display_query(client, query, "Customer Orders Query")
+    
+    # Example 3: Retrieving customer behavior data
+    print("\n--- Example 3: Customer Behavior Data ---")
+    query = """
+    SELECT * FROM customer_behaviors
+    """
+    execute_and_display_query(client, query, "Customer Behavior Query")
+    
+    # Example 4: Simple count query 
+    print("\n--- Example 4: Count Query ---")
+    query = """
+    SELECT COUNT(*) FROM orders
+    """
+    execute_and_display_query(client, query, "Count Query")
+    
+    # Additional example with more filtering
+    print("\n--- Example 5: Filtered Orders ---")
+    query = """
+    SELECT * FROM orders
+    WHERE amount > 500
+    """
+    execute_and_display_query(client, query, "High-Value Orders")
+
+def execute_and_display_query(client, query, description):
+    """Execute query and display results."""
+    print(f"Executing: {description}")
+    print(f"Query: {query.strip()}")
+    
+    result = client.execute_query(query)
+    
+    if result.get("success"):
+        rows = result.get("rows", [])
+        if rows:
+            print("\nResults:")
+            for i, row in enumerate(rows[:10]):  # Show up to 10 rows
+                print(f"  {row}")
+            if len(rows) > 10:
+                print(f"  ... and {len(rows) - 10} more records")
+        else:
+            print("✓ Operation completed successfully (no data returned)")
+    else:
+        print(f"✗ Query failed: {result.get('error', 'Unknown error')}")
+    
+    # Display transaction ID for tracking
+    if 'transaction_id' in result:
+        print(f"Transaction ID: {result['transaction_id']}")
+    
+    print("-" * 50)
 
 if __name__ == "__main__":
     run_complex_queries_example()
-

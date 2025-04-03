@@ -1,0 +1,82 @@
+name: Build Wheels
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build wheel setuptools twine
+
+      - name: Set CI_BUILD environment variable
+        run: echo "CI_BUILD=1" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build wheels
+        run: |
+          python -m build --wheel
+          
+      - name: Store wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
+          path: ./dist/*.whl
+
+  publish:
+    name: Publish to PyPI
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install twine
+          
+      - name: Download all wheels
+        uses: actions/download-artifact@v3
+        with:
+          path: ./dist
+          
+      - name: Prepare wheels for upload
+        run: |
+          mkdir -p ./dist_final
+          find ./dist -name "*.whl" -exec cp {} ./dist_final \;
+          ls -la ./dist_final
+          
+      - name: Upload wheels to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          python -m twine upload --skip-existing ./dist_final/*
