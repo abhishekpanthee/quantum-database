@@ -356,7 +356,7 @@
             <div id='sidebar'>
                 <h2><i class="fas fa-list"></i> Table of Contents</h2>
                 <ul>
-<li class="toc-level-1"><span class="toc-bullet">▸</span><a href="#quantum-database-system">Quantum Database System</a></li>
+<li class="toc-level-1"><span class="toc-bullet">▸</span><a href="#quantum-database-system-(qndb)">Quantum Database System (qndb)</a></li>
 <ul>
 <li class="toc-level-2"><span class="toc-bullet">•</span><a href="#📄-documentation-incomplete-😩">📄 Documentation Incomplete 😩</a></li>
 </ul>
@@ -1731,7 +1731,7 @@
 </ul>
             </div>
             <div id='content'>
-                <h1 id="quantum-database-system">Quantum Database System</h1>
+                <h1 id="quantum-database-system-(qndb)">Quantum Database System (qndb)</h1>
 <p><img alt="Version" src="https://img.shields.io/badge/version-0.1.0-green.svg"/>
 <img alt="Status" src="https://img.shields.io/badge/status-experimental-orange.svg"/>
 <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"/>
@@ -1745,7 +1745,7 @@
 <td><img src="https://res.cloudinary.com/dpwglhp5u/image/upload/v1743495531/image-Photoroom_1_alsh4y.png" width="200"/></td>
 <td>
 <h2 id="📄-documentation-incomplete-😩">📄 Documentation Incomplete 😩</h2>
-<p>Keeping up with documentation is exhausting, and it's not fully complete. If you want to help, feel free to contribute! Any improvements are welcome. 🚀</p>
+<p>(This is experimental project)Keeping up with documentation is exhausting, and it's not fully complete. If you want to help, feel free to contribute! Any improvements are welcome. 🚀</p>
 </td>
 <td><img src="https://res.cloudinary.com/dpwglhp5u/image/upload/v1743495531/image-Photoroom_crcqrq.png" width="200"/></td>
 </tr>
@@ -3221,14 +3221,14 @@ CONFIDENCE 0.99;
 <li>Resource quota management</li>
 </ul>
 <h2 id="installation-methods">Installation Methods</h2>
-<p><strong>*!!!!!!!!!!!!!(the packages are yet not released in pip as well as docker so you have to use from github)!!!!!!!!!!</strong>
+<p><strong>*!!!!!!!!!!!!!(the packages are yet not released  docker so you have to use from github and pip )!!!!!!!!!!</strong>
 Various methods for installing the quantum database system.</p>
 <h3 id="package-installation">Package Installation</h3>
 <p>Installation using pre-built packages. </p>
 <h4 id="package-managers">Package Managers</h4>
-<p><strong><em>!!!!!!!!!!!!!(the packages are yet not released in pip as well as docker so you have to use from github)!!!!!!!!!!</em>*
-- </strong>pip<strong>: <code>pip install quantum-database</code>
-- </strong>conda<strong>: <code>conda install -c quantum-channel quantum-database</code>
+<p><strong><em>!!!!!!!!!!!!!(the packages are yet not released docker so you have to use from github and pip )!!!!!!!!!!</em>*
+- </strong>pip<strong>: <code>pip install qndb</code>
+- </strong>conda<strong>: <code>conda install -c quantum-channel qndb</code>
 - </strong>apt/yum**: Repository setup and installation instructions</p>
 <h4 id="verification">Verification</h4>
 <ul>
@@ -3251,7 +3251,7 @@ Various methods for installing the quantum database system.</p>
 <li>Build dependencies</li>
 </ul>
 <h4 id="build-process">Build Process</h4>
-<pre><code class="language-bash">git clone https://github.com/quantum-org/quantum-database.git
+<pre><code class="language-bash">git clone https://github.com/abhishekpanthee/quantum-database.git
 cd quantum-database
 python -m pip install -e .
 </code></pre>
@@ -3262,23 +3262,23 @@ python -m pip install -e .
 <li>Hardware-specific optimizations</li>
 </ul>
 <h3 id="docker-installation">Docker Installation</h3>
-<p><strong>*!!!!!!!!!!!!!(the packages are yet not released in pip as well as docker so you have to use from github)!!!!!!!!!!</strong>
+<p><strong>*!!!!!!!!!!!!!(the packages are yet not released in docker so you have to use from github and pip )!!!!!!!!!!</strong>
 Installation using Docker containers.</p>
 <h4 id="available-images">Available Images</h4>
 <ul>
-<li><code>quantum-database:latest</code> - Latest stable release</li>
-<li><code>quantum-database:nightly</code> - Nightly development build</li>
-<li><code>quantum-database:slim</code> - Minimal installation</li>
+<li><code>qndb:latest</code> - Latest stable release</li>
+<li><code>qndb:nightly</code> - Nightly development build</li>
+<li><code>qndb:slim</code> - Minimal installation</li>
 </ul>
 <h4 id="deployment-commands">Deployment Commands</h4>
-<pre><code class="language-bash">docker pull quantum-org/quantum-database:latest
-docker run -d -p 8000:8000 -v qdb-data:/var/lib/qdb quantum-org/quantum-database
+<pre><code class="language-bash">docker pull abhishekpanthee-org/qndb:latest
+docker run -d -p 8000:8000 -v qdb-data:/var/lib/qdb abhishekpanthee-org/qndb
 </code></pre>
 <h4 id="docker-compose">Docker Compose</h4>
 <pre><code class="language-yaml">version: '3'
 services:
-  quantum-database:
-    image: quantum-org/quantum-database:latest
+  qndb:
+    image: abhishekpanthee-org/qndb:latest
     ports:
       - "8000:8000"
     volumes:
@@ -3417,7 +3417,7 @@ export QDB_QUANTUM_BACKEND=ibm
 <h3 id="performance-baseline">Performance Baseline</h3>
 <p>Establishing performance baselines for system monitoring.</p>
 <h4 id="baseline-creation">Baseline Creation</h4>
-<pre><code class="language-bash">qdb-admin create-baseline --workload typical --duration 1h
+<pre><code class="language-bash">qndb-admin create-baseline --workload typical --duration 1h
 </code></pre>
 <h4 id="measured-metrics">Measured Metrics</h4>
 <ul>
@@ -3447,7 +3447,7 @@ export QDB_QUANTUM_BACKEND=ibm
 </ul>
 <h4 id="authentication">Authentication</h4>
 <pre><code class="language-bash"># CLI Authentication
-qdb-cli connect --host localhost --port 8000 --user admin
+qndb-cli connect --host localhost --port 8000 --user admin
 
 # API Authentication
 from quantumdb import Client
@@ -3464,7 +3464,7 @@ client.authenticate(username="admin", password="password")
 <p>Creating a new quantum database.</p>
 <h4 id="creation-commands">Creation Commands</h4>
 <pre><code class="language-bash"># CLI Database Creation
-qdb-cli create-database my_quantum_db
+qndb-cli create-database my_quantum_db
 
 # API Database Creation
 client.create_database("my_quantum_db")
@@ -3799,7 +3799,7 @@ with db.transaction() as txn:
 <h3 id="quantum-operations-api">Quantum Operations API</h3>
 <h4 id="groversearch">GroverSearch</h4>
 <p>Implementation of Grover's algorithm for quantum search operations.</p>
-<pre><code class="language-python">from quantumdb.operations import GroverSearch
+<pre><code class="language-python">from qndb.operations import GroverSearch
 
 # Create a search for exact matches
 search = GroverSearch(table="users", column="account_balance", value=5000)
@@ -3822,7 +3822,7 @@ print(f"Qubits used: {range_search.statistics.qubit_count}")
 </code></pre>
 <h4 id="quantumjoin">QuantumJoin</h4>
 <p>High-performance quantum-accelerated table joins.</p>
-<pre><code class="language-python">from quantumdb.operations import QuantumJoin
+<pre><code class="language-python">from qndb.operations import QuantumJoin
 
 # Join transactions and users tables
 join = QuantumJoin(
@@ -3844,7 +3844,7 @@ join.on_progress(lambda progress: print(f"Join progress: {progress}%"))
 </code></pre>
 <h4 id="quantumindex">QuantumIndex</h4>
 <p>Quantum indexing structures for rapid data retrieval.</p>
-<pre><code class="language-python">from quantumdb.operations import QuantumIndex
+<pre><code class="language-python">from qndb.operations import QuantumIndex
 
 # Create a quantum index
 idx = QuantumIndex(
@@ -3870,7 +3870,7 @@ results = query.execute()
 </code></pre>
 <h4 id="quantumaggregation">QuantumAggregation</h4>
 <p>Quantum-based data aggregation functions.</p>
-<pre><code class="language-python">from quantumdb.operations import QuantumAggregation
+<pre><code class="language-python">from qndb.operations import QuantumAggregation
 
 # Perform quantum aggregation
 agg = QuantumAggregation(
@@ -3895,7 +3895,7 @@ for row in results:
 <h3 id="encoding-api">Encoding API</h3>
 <h4 id="amplitudeencoder">AmplitudeEncoder</h4>
 <p>Encoding continuous data into quantum amplitudes.</p>
-<pre><code class="language-python">from quantumdb.encoding import AmplitudeEncoder
+<pre><code class="language-python">from qndb.encoding import AmplitudeEncoder
 
 # Create an encoder for floating-point data
 encoder = AmplitudeEncoder(
@@ -3921,7 +3921,7 @@ print(f"Decoded values: {probabilities}")
 </code></pre>
 <h4 id="basisencoder">BasisEncoder</h4>
 <p>Encoding discrete data into quantum basis states.</p>
-<pre><code class="language-python">from quantumdb.encoding import BasisEncoder
+<pre><code class="language-python">from qndb.encoding import BasisEncoder
 
 # Create an encoder for categorical data
 encoder = BasisEncoder(bit_mapping="binary")
@@ -3940,7 +3940,7 @@ combined = encoder.combine_circuits([circuit, id_circuit])
 </code></pre>
 <h4 id="qram">QRAM</h4>
 <p>Quantum Random Access Memory implementation.</p>
-<pre><code class="language-python">from quantumdb.encoding import QRAM
+<pre><code class="language-python">from qndb.encoding import QRAM
 
 # Initialize a quantum RAM
 qram = QRAM(address_qubits=3, data_qubits=8)
@@ -3960,7 +3960,7 @@ print(f"Query results distribution: {result}")
 </code></pre>
 <h4 id="hybridencoder">HybridEncoder</h4>
 <p>Combined classical/quantum encoding strategies.</p>
-<pre><code class="language-python">from quantumdb.encoding import HybridEncoder
+<pre><code class="language-python">from qndb.encoding import HybridEncoder
 
 # Create a hybrid encoder for mixed data types
 encoder = HybridEncoder()
@@ -3987,7 +3987,7 @@ db.store_hybrid_record("users", encoded_record, record_id=42)
 <h3 id="system-management-api">System Management API</h3>
 <h4 id="clustermanager">ClusterManager</h4>
 <p>Distributed node management and coordination.</p>
-<pre><code class="language-python">from quantumdb.system import ClusterManager
+<pre><code class="language-python">from qndb.system import ClusterManager
 
 # Initialize a cluster manager
 cluster = ClusterManager(
@@ -4022,7 +4022,7 @@ cluster.create_distributed_database(
 </code></pre>
 <h4 id="securitymanager">SecurityManager</h4>
 <p>Quantum encryption and access control.</p>
-<pre><code class="language-python">from quantumdb.system import SecurityManager
+<pre><code class="language-python">from qndb.system import SecurityManager
 
 # Initialize security manager
 security = SecurityManager(db)
@@ -4055,7 +4055,7 @@ security.enable_audit_logging("/var/log/quantumdb/security.log")
 </code></pre>
 <h4 id="performancemonitor">PerformanceMonitor</h4>
 <p>System monitoring and performance analytics.</p>
-<pre><code class="language-python">from quantumdb.system import PerformanceMonitor
+<pre><code class="language-python">from qndb.system import PerformanceMonitor
 
 # Initialize performance monitoring
 monitor = PerformanceMonitor(db)
@@ -4084,7 +4084,7 @@ monitor.export_metrics("prometheus", endpoint="http://monitoring:9090/metrics")
 </code></pre>
 <h4 id="configurationmanager">ConfigurationManager</h4>
 <p>System-wide configuration and tuning.</p>
-<pre><code class="language-python">from quantumdb.system import ConfigurationManager
+<pre><code class="language-python">from qndb.system import ConfigurationManager
 
 # Initialize configuration manager
 config = ConfigurationManager("/etc/quantumdb/config.yaml")
@@ -4156,7 +4156,7 @@ VALUES (1, 'Research', 1000000.00),
 """)
 
 # INSERT with quantum vectors
-from quantumdb.types import QuantumVector
+from qndb.types import QuantumVector
 
 db.execute("""
 INSERT INTO employees (id, name, department_id, salary, performance_vector)
@@ -4220,7 +4220,7 @@ WHERE e.salary &gt; 80000
 </code></pre>
 <h3 id="complex-queries">Complex Queries</h3>
 <h4 id="quantum-search-implementation">Quantum Search Implementation</h4>
-<pre><code class="language-python">from quantumdb.operations import GroverSearch
+<pre><code class="language-python">from qndb.operations import GroverSearch
 
 # Prepare database with sample data
 db.execute("INSERT INTO employees_large (id, salary) VALUES (?, ?)", 
@@ -4251,7 +4251,7 @@ print(f"  Grover iterations: {search.stats.iterations}")
 print(f"  Success probability: {search.stats.success_probability:.2f}")
 </code></pre>
 <h4 id="multi-table-joins">Multi-table Joins</h4>
-<pre><code class="language-python">from quantumdb.operations import QuantumJoin
+<pre><code class="language-python">from qndb.operations import QuantumJoin
 
 # Configure a three-way quantum join
 join = QuantumJoin(db)
@@ -4338,7 +4338,7 @@ ORDER BY tp.avg_performance DESC
 </code></pre>
 <h3 id="distributed-database">Distributed Database</h3>
 <h4 id="setting-up-a-cluster">Setting Up a Cluster</h4>
-<pre><code class="language-python">from quantumdb.distributed import ClusterManager, Node
+<pre><code class="language-python">from qndb.distributed import ClusterManager, Node
 
 # Initialize the cluster manager
 cluster = ClusterManager(
@@ -4399,7 +4399,7 @@ CREATE TABLE customers (
 """)
 </code></pre>
 <h4 id="distributed-queries">Distributed Queries</h4>
-<pre><code class="language-python">from quantumdb.distributed import DistributedQuery
+<pre><code class="language-python">from qndb.distributed import DistributedQuery
 
 # Create a distributed query
 query = DistributedQuery(cluster_db)
@@ -4436,7 +4436,7 @@ for node_id, stats in query.get_execution_stats().items():
     print(f"  Quantum operations: {stats.quantum_operations}")
 </code></pre>
 <h4 id="scaling-operations">Scaling Operations</h4>
-<pre><code class="language-python">from quantumdb.distributed import ScalingManager
+<pre><code class="language-python">from qndb.distributed import ScalingManager
 
 # Initialize scaling manager
 scaling = ScalingManager(cluster)
@@ -4479,7 +4479,7 @@ for rec in recommendations:
 </code></pre>
 <h3 id="secure-storage">Secure Storage</h3>
 <h4 id="quantum-encryption-setup">Quantum Encryption Setup</h4>
-<pre><code class="language-python">from quantumdb.security import QuantumEncryption
+<pre><code class="language-python">from qndb.security import QuantumEncryption
 
 # Initialize quantum encryption
 encryption = QuantumEncryption(db)
@@ -4513,7 +4513,7 @@ for vulnerability in security_report.vulnerabilities:
     print(f"  Recommendation: {vulnerability.recommendation}")
 </code></pre>
 <h4 id="access-control-configuration">Access Control Configuration</h4>
-<pre><code class="language-python">from quantumdb.security import AccessControl
+<pre><code class="language-python">from qndb.security import AccessControl
 
 # Initialize access control
 access = AccessControl(db)
@@ -4551,7 +4551,7 @@ print(f"Permission test: {'Allowed' if test_results.allowed else 'Denied'}")
 print(f"Reason: {test_results.reason}")
 </code></pre>
 <h4 id="secure-multi-party-computation">Secure Multi-party Computation</h4>
-<pre><code class="language-python">from quantumdb.security import SecureMultiPartyComputation
+<pre><code class="language-python">from qndb.security import SecureMultiPartyComputation
 
 # Initialize secure MPC
 mpc = SecureMultiPartyComputation()
@@ -4594,7 +4594,7 @@ print(f"Privacy guarantee: {result.privacy_guarantee}")
 </code></pre>
 <h3 id="integration-examples">Integration Examples</h3>
 <h4 id="classical-database-integration">Classical Database Integration</h4>
-<pre><code class="language-python">from quantumdb.integration import ClassicalConnector
+<pre><code class="language-python">from qndb.integration import ClassicalConnector
 
 # Connect to classical PostgreSQL database
 classical_db = ClassicalConnector.connect(
@@ -4638,7 +4638,7 @@ ORDER BY risk_score DESC
 ])
 </code></pre>
 <h4 id="application-integration">Application Integration</h4>
-<pre><code class="language-python">from quantumdb.integration import ApplicationConnector
+<pre><code class="language-python">from qndb.integration import ApplicationConnector
 from fastapi import FastAPI
 
 # Create FastAPI application
@@ -5096,7 +5096,7 @@ class ErrorCorrelationPlugin(AnalyticsPlugin):
   "enabled": true,
   "collection_interval_ms": 500,
   "storage": {
-    "local_path": "/var/log/quantumdb/analytics",
+    "local_path": "/var/log/qndb/analytics",
     "retention_days": 30
   },
   "external_endpoints": [
