@@ -21,7 +21,7 @@ extras_require = {
 
 setup(
     name="qndb",
-    version="0.1.2",  
+    version="1.0.0",  
     author="Abhishek Panthee",
     author_email="contact@abhishekpanthee.com.np",
     description="A quantum database implementation",
@@ -40,10 +40,10 @@ setup(
     ],
     python_requires=">=3.8",  # Updated minimum Python version
     install_requires=[
-        "cirq-core>=1.0.0,<1.5.0",  # Only include core cirq dependency
-        "numpy>=1.20.0,<1.27.0",
-        "pandas>=1.3.0,<1.6.0",
-        "matplotlib>=3.5.0,<4.0.0",
+        "cirq-core", 
+        "numpy",
+        "pandas",
+        "matplotlib",
     ],
     extras_require=extras_require,
     include_package_data=True,
@@ -51,8 +51,11 @@ setup(
         "": ["examples/*.py"],
     },
     zip_safe=False,
-    # Build time options
     options={
         'bdist_wheel': {'universal': False}  # Build platform-specific wheels
     },
+    # Updated dependency links to a more relevant source for pandas
+    dependency_links=[
+        "https://www.lfd.uci.edu/~gohlke/pythonlibs/#pandas",  # Provide a custom pandas .whl file location (Gohlke's unofficial binaries)
+    ],
 )
