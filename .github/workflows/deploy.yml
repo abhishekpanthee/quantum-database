@@ -1,0 +1,53 @@
+name: Generate and Deploy HTML from README
+
+on:
+  push:
+    paths:
+      - 'README.md'
+      - '.github/workflows/generate_and_deploy.yml'  # Trigger on workflow file changes
+    branches:
+      - main # Only triggers on pushes to main
+  workflow_dispatch: # Manually trigger the workflow
+
+jobs:
+  generate_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout main branch code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install beautifulsoup4 markdown
+
+    - name: Generate HTML
+      run: python generate_pages.py
+
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v3
+      with:
+        ref: gh-pages
+        path: gh-pages-checkout # Checkout gh-pages into a different directory
+
+    - name: Copy index.html to gh-pages
+      run: |
+        cp index.html gh-pages-checkout/
+
+    - name: Configure Git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+
+    - name: Commit and push changes to gh-pages
+      run: |
+        cd gh-pages-checkout/
+        git add index.html
+        git commit -m "Update index.html from README.md or workflow file change" || echo "No changes to commit"
+        git push origin gh-pages
