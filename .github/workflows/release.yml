@@ -39,7 +39,7 @@ jobs:
           python -m build --wheel
           
       - name: Store wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Fixed deprecated version
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
           path: ./dist/*.whl
@@ -64,7 +64,7 @@ jobs:
           python -m pip install twine
           
       - name: Download all wheels
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4  # Fixed deprecated version
         with:
           path: ./dist
           
