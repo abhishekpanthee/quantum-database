@@ -1,14 +1,16 @@
 """
-Quantum Engine — backward-compatibility shim.
+qndb.core.engine — Quantum Engine Subpackage
+==============================================
 
-New code should import from :mod:`qndb.core.engine` instead.
+Modular quantum engine: backends, noise, circuit parameterisation,
+qubit allocation, checkpointing, and hardware integration.
 """
 
 from qndb.core.engine.backends import BackendBase, SimulatorBackend, CloudBackend  # noqa: F401
 from qndb.core.engine.noise import NoiseConfig                                     # noqa: F401
 from qndb.core.engine.quantum_engine import QuantumEngine                          # noqa: F401
 
-# Hardware integration
+# Hardware integration (feature-flagged)
 from qndb.core.engine.hardware import (                                             # noqa: F401
     HARDWARE_ENABLED, IBM_ENABLED, GOOGLE_ENABLED, IONQ_ENABLED, BRAKET_ENABLED,
     BackendCapabilities, BackendRegistry, HardwareBackendBase,
@@ -20,15 +22,21 @@ from qndb.core.engine.hardware import (                                         
 )
 
 __all__ = [
+    # Core
     "BackendBase", "SimulatorBackend", "CloudBackend",
     "NoiseConfig", "QuantumEngine",
-    # Hardware integration
+    # Feature flags
     "HARDWARE_ENABLED", "IBM_ENABLED", "GOOGLE_ENABLED",
     "IONQ_ENABLED", "BRAKET_ENABLED",
+    # Registry
     "BackendCapabilities", "BackendRegistry", "HardwareBackendBase",
+    # Backends
     "IBMBackend", "GoogleBackend", "IonQBackend", "BraketBackend",
+    # Compilation
     "HardwareCompiler", "TopologyMapper", "GateDecomposer", "CalibrationData",
+    # Hybrid execution
     "HybridExecutor", "WorkloadPartitioner", "CircuitKnitter", "ErrorBudgetManager",
+    # Error management
     "CalibrationMonitor", "ErrorMitigator", "HardwareNoiseModel",
     "FidelityScorer", "CircuitRetryManager",
 ]
