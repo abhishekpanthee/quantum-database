@@ -270,3 +270,107 @@ class QuantumSearch:
                 num_iterations = int(math.sqrt(database_size / num_marked))
             
             return self.grovers_algorithm(marked_items, num_iterations)
+
+    # ------------------------------------------------------------------
+    # Grover certification helpers
+    # ------------------------------------------------------------------
+
+    def optimal_iterations(self, num_marked: int) -> int:
+        """Return the theoretically optimal number of Grover iterations.
+
+        Args:
+            num_marked: Number of marked (solution) items
+
+        Returns:
+            Optimal iteration count
+        """
+        if num_marked <= 0 or num_marked >= self.database_size:
+            return 0
+        return max(1, int(round(
+            (math.pi / 4) * math.sqrt(self.database_size / num_marked)
+        )))
+
+    def success_probability(self, num_marked: int,
+                            num_iterations: Optional[int] = None) -> float:
+        """Compute the theoretical success probability of Grover's search.
+
+        Args:
+            num_marked: Number of marked items
+            num_iterations: Iterations to use (optimal if None)
+
+        Returns:
+            Probability of measuring a marked item
+        """
+        if num_marked <= 0:
+            return 0.0
+        if num_marked >= self.database_size:
+            return 1.0
+
+        theta = math.asin(math.sqrt(num_marked / self.database_size))
+        iters = num_iterations if num_iterations is not None else self.optimal_iterations(num_marked)
+        return math.sin((2 * iters + 1) * theta) ** 2
+
+    # ------------------------------------------------------------------
+    # Quantum walk-based search
+    # ------------------------------------------------------------------
+
+    def quantum_walk_search(self, marked_items: List[int],
+                            num_steps: Optional[int] = None) -> cirq.Circuit:
+        """Implement a quantum-walk–based search on a hypercube graph.
+
+        The walk alternates between a *coin* operator (Grover diffusion on the
+        coin register) and a *shift* operator that moves the walker to adjacent
+        vertices.  Marked vertices acquire a phase flip via the oracle.
+
+        This provides a quadratic speed-up similar to Grover's algorithm but
+        generalises to graph-structured search spaces.
+
+        Args:
+            marked_items: Indices of marked vertices
+            num_steps: Number of walk steps (defaults to O(sqrt(N)))
+
+        Returns:
+            Quantum walk search circuit
+        """
+        n = self.num_qubits
+        qubits = [cirq.LineQubit(i) for i in range(n)]
+        # Coin register: log2(n) qubits for the n-dimensional hypercube
+        coin_size = max(1, int(math.ceil(math.log2(n)))) if n > 1 else 1
+        coin_qubits = [cirq.LineQubit(n + i) for i in range(coin_size)]
+
+        if num_steps is None:
+            num_steps = max(1, int(math.sqrt(self.database_size)))
+
+        circuit = cirq.Circuit()
+
+        # Initialise all qubits in uniform superposition
+        circuit.append(cirq.H.on_each(*qubits))
+        circuit.append(cirq.H.on_each(*coin_qubits))
+
+        oracle_circuit = self.create_oracle(marked_items)
+
+        for _ in range(num_steps):
+            # --- Oracle: phase-flip marked vertices ---
+            circuit += oracle_circuit
+
+            # --- Coin operator (Grover diffusion on coin register) ---
+            circuit.append(cirq.H.on_each(*coin_qubits))
+            circuit.append(cirq.X.on_each(*coin_qubits))
+            if len(coin_qubits) > 1:
+                circuit.append(
+                    cirq.Z(coin_qubits[-1]).controlled_by(*coin_qubits[:-1])
+                )
+            else:
+                circuit.append(cirq.Z(coin_qubits[0]))
+            circuit.append(cirq.X.on_each(*coin_qubits))
+            circuit.append(cirq.H.on_each(*coin_qubits))
+
+            # --- Shift operator: conditional bit-flip on position register ---
+            for c_idx in range(min(coin_size, n)):
+                if c_idx < len(coin_qubits) and c_idx < len(qubits):
+                    circuit.append(cirq.CNOT(coin_qubits[c_idx], qubits[c_idx]))
+
+        # Measure the position register
+        circuit.append(cirq.measure(*qubits, key='result'))
+
+        return circuit
