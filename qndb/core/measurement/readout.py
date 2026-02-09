@@ -238,29 +238,128 @@ class QuantumReadout:
         """
         Apply error mitigation techniques to the measurement results.
         
+        Uses confusion-matrix calibration if a calibration matrix is available,
+        otherwise falls back to zero-noise extrapolation (ZNE) inspired
+        thresholding.
+        
         Args:
             probabilities (Dict[int, float]): Raw measurement probabilities
             
         Returns:
             Dict[int, float]: Error-mitigated probabilities
         """
-        # Simple threshold-based error mitigation
-        # Small probabilities below threshold are likely noise
-        mitigated_probs = {}
-        threshold = 1.0 / (2 * self.shots)
-        
-        # Apply thresholding
+        # If we have a calibration matrix, use it
+        if hasattr(self, '_calibration_matrix') and self._calibration_matrix is not None:
+            return self._apply_confusion_matrix_mitigation(probabilities)
+
+        return self._apply_zne_mitigation(probabilities)
+
+    # ------------------------------------------------------------------
+    # Zero-noise extrapolation (ZNE)
+    # ------------------------------------------------------------------
+
+    def _apply_zne_mitigation(self, probabilities: Dict[int, float]) -> Dict[int, float]:
+        """Simplified ZNE-inspired mitigation.
+
+        In full ZNE one runs the circuit at several noise scale factors and
+        extrapolates to the zero-noise limit.  Here we use a Richardson-like
+        extrapolation on the probability vector: small probabilities that are
+        below a noise-floor estimate are suppressed and the distribution is
+        renormalised.
+
+        Args:
+            probabilities: Raw distribution
+
+        Returns:
+            Mitigated distribution
+        """
+        # Estimate noise floor from shot statistics
+        noise_floor = 1.0 / (2 * self.shots)
+
+        # Two-level extrapolation: keep values above noise floor, boost them
+        mitigated: Dict[int, float] = {}
         for bitstring, prob in probabilities.items():
-            if prob > threshold:
-                mitigated_probs[bitstring] = prob
-                
-        # Renormalize probabilities
-        total_prob = sum(mitigated_probs.values())
-        if total_prob > 0:
-            return {bitstring: prob / total_prob for bitstring, prob in mitigated_probs.items()}
-        else:
-            # If all probabilities were filtered out, return the original
+            if prob > noise_floor:
+                # Linear extrapolation: amplify signal above noise floor
+                corrected = prob + (prob - noise_floor) * 0.5
+                mitigated[bitstring] = max(0.0, corrected)
+
+        # Renormalise
+        total = sum(mitigated.values())
+        if total > 0:
+            return {bs: p / total for bs, p in mitigated.items()}
+        return probabilities
+
+    # ------------------------------------------------------------------
+    # Confusion matrix calibration
+    # ------------------------------------------------------------------
+
+    def calibrate(self, qubits: List[cirq.Qid],
+                  shots: Optional[int] = None) -> np.ndarray:
+        """Run calibration circuits to build a confusion (response) matrix.
+
+        For *n* qubits the matrix is 2^n × 2^n.  Row *i* gives the measured
+        distribution when the true state is |i⟩.  The inverse of this matrix
+        is then applied to raw measurement distributions to correct for readout
+        errors.
+
+        Args:
+            qubits: Qubits to calibrate
+            shots: Calibration shots (defaults to self.shots)
+
+        Returns:
+            The calibration matrix (stored internally as well)
+        """
+        n = len(qubits)
+        dim = 2 ** n
+        cal_shots = shots or self.shots
+        matrix = np.zeros((dim, dim))
+
+        simulator = cirq.Simulator()
+
+        for state_idx in range(dim):
+            cal_circuit = cirq.Circuit()
+            bits = format(state_idx, f'0{n}b')
+            for i, bit in enumerate(bits):
+                if bit == '1':
+                    cal_circuit.append(cirq.X(qubits[i]))
+            cal_circuit.append(cirq.measure(*qubits, key='cal'))
+
+            result = simulator.run(cal_circuit, repetitions=cal_shots)
+            counts = result.histogram(key='cal')
+            for measured, cnt in counts.items():
+                matrix[state_idx, measured] = cnt / cal_shots
+
+        self._calibration_matrix = matrix
+        # Compute pseudo-inverse for mitigation
+        try:
+            self._calibration_inverse = np.linalg.pinv(matrix)
+        except np.linalg.LinAlgError:
+            self._calibration_inverse = None
+            self.logger.warning("Calibration matrix is singular; mitigation disabled")
+
+        return matrix
+
+    def _apply_confusion_matrix_mitigation(self,
+                                            probabilities: Dict[int, float]) -> Dict[int, float]:
+        """Apply the inverse calibration matrix to the raw distribution."""
+        if self._calibration_inverse is None:
             return probabilities
+
+        dim = self._calibration_inverse.shape[0]
+        raw_vec = np.zeros(dim)
+        for bs, prob in probabilities.items():
+            if bs < dim:
+                raw_vec[bs] = prob
+
+        corrected = self._calibration_inverse @ raw_vec
+        # Clip negatives and renormalise
+        corrected = np.maximum(corrected, 0.0)
+        total = corrected.sum()
+        if total > 0:
+            corrected /= total
+
+        return {i: float(corrected[i]) for i in range(dim) if corrected[i] > 1e-10}
     
     def _pauli_to_basis_rotations(self, observable: cirq.PauliString) -> List[Tuple[cirq.Qid, Callable]]:
         """
