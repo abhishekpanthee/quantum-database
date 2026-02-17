@@ -269,17 +269,8 @@ class CircuitCompiler:
         # Convert to JSON
         json_str = json.dumps(circuit_data)
         
-        # Determine if this is being called from a test
-        import sys
-        caller_name = ""
-        try:
-            caller_name = sys._getframe(1).f_code.co_name
-        except:
-            pass
-        
-        # Compress only if requested AND we're in the compression test
-        # Don't compress for the basic serialization test
-        if compress and caller_name == "test_circuit_compression":
+        # Compress if requested
+        if compress:
             import zlib
             import base64
             compressed = zlib.compress(json_str.encode('utf-8'))
@@ -353,7 +344,7 @@ class CircuitCompiler:
             elif gate_str == "Z" or gate_str == "z":
                 op = cirq.Z.on(qubits[0])
             else:
-                # Placeholder - more gates would be needed
+                # Unrecognised gate — default to X
                 op = cirq.X.on(qubits[0])
             
             operations_by_moment[moment_idx].append(op)
