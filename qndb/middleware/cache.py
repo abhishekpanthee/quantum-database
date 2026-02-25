@@ -1,282 +1,390 @@
 """
 Middleware Cache Module
 
-This module implements caching mechanisms for quantum database operations
-to improve performance by avoiding redundant quantum computations.
+Thread-safe caching for quantum database operations with disk-backed
+persistence, dependency-based invalidation, consistent hashing, probabilistic
+result caching, and circuit deduplication.
+
+Features:
+ - RLock-protected QuantumResultCache and QueryCache
+ - DiskBackedCache with SQLite backend
+ - Dependency-based invalidation (track which tables a query touches)
+ - ConsistentHashRing for distributed cache prep
+ - Probabilistic cache: store measurement distributions
+ - Circuit deduplication via structural hashing
 """
 
 import time
 import json
 import hashlib
-from typing import Dict, Any, Optional, Tuple, List
+import math
+import sqlite3
+import threading
+import os
+from typing import Dict, Any, Optional, Tuple, List, Set
 import numpy as np
 from functools import lru_cache
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# ======================================================================
+# Thread-safe quantum result cache
+# ======================================================================
 
 class QuantumResultCache:
-    """Cache for storing results of quantum operations to avoid recomputation."""
-    
+    """Thread-safe cache for quantum operation results."""
+
     def __init__(self, max_size: int = 1000, ttl: int = 3600):
-        """
-        Initialize the quantum result cache.
-        
-        Args:
-            max_size: Maximum number of items to store in cache
-            ttl: Time-to-live for cache entries in seconds
-        """
         self._cache: Dict[str, Tuple[Any, float]] = {}
         self._max_size = max_size
         self._ttl = ttl
-    
+        self._lock = threading.RLock()
+        self._hits = 0
+        self._misses = 0
+
     def _generate_key(self, circuit_data: Any, params: Dict[str, Any]) -> str:
-        """
-        Generate a unique cache key based on circuit data and parameters.
-        
-        Args:
-            circuit_data: Quantum circuit or operation data
-            params: Parameters associated with the operation
-            
-        Returns:
-            A unique hash key for the operation
-        """
-        # Convert numpy arrays to lists for JSON serialization
-        clean_params = {}
+        clean_params: Dict[str, Any] = {}
         for k, v in params.items():
             if isinstance(v, np.ndarray):
                 clean_params[k] = v.tolist()
             else:
                 clean_params[k] = v
-                
-        # Create a string representation of both circuit and parameters
-        circuit_str = str(circuit_data)
-        params_str = json.dumps(clean_params, sort_keys=True)
-        combined = f"{circuit_str}:{params_str}"
-        
-        # Generate hash
+        combined = f"{circuit_data}:{json.dumps(clean_params, sort_keys=True)}"
         return hashlib.sha256(combined.encode()).hexdigest()
-    
-    def get(self, circuit_data: Any, params: Dict[str, Any]) -> Optional[Any]:
-        """
-        Retrieve a result from cache if available and not expired.
-        
-        Args:
-            circuit_data: Quantum circuit or operation data
-            params: Parameters associated with the operation
-            
-        Returns:
-            Cached result or None if not found or expired
-        """
-        key = self._generate_key(circuit_data, params)
-        if key in self._cache:
-            result, timestamp = self._cache[key]
-            
-            # Check if entry has expired
-            if time.time() - timestamp <= self._ttl:
-                return result
-            
-            # Remove expired entry
-            del self._cache[key]
-        
-        return None
-    
-    def put(self, circuit_data: Any, params: Dict[str, Any], result: Any) -> None:
-        """
-        Store a result in the cache.
-        
-        Args:
-            circuit_data: Quantum circuit or operation data
-            params: Parameters associated with the operation
-            result: Result to cache
-        """
-        # Evict entries if cache is full
-        if len(self._cache) >= self._max_size:
-            # Remove oldest entry (simple LRU implementation)
-            oldest_key = min(self._cache.items(), key=lambda x: x[1][1])[0]
-            del self._cache[oldest_key]
-        
-        key = self._generate_key(circuit_data, params)
-        self._cache[key] = (result, time.time())
-    
-    def invalidate(self, pattern: Optional[str] = None) -> None:
-        """
-        Invalidate cache entries matching the given pattern.
-        
-        Args:
-            pattern: Optional string pattern to match keys against
-        """
-        if pattern is None:
-            self._cache.clear()
-            return
-            
-        keys_to_remove = [k for k in self._cache.keys() if pattern in k]
-        for key in keys_to_remove:
-            del self._cache[key]
-    
-    def stats(self) -> Dict[str, Any]:
-        """
-        Get cache statistics.
-        
-        Returns:
-            Dictionary with cache statistics
-        """
-        current_time = time.time()
-        active_entries = sum(1 for _, timestamp in self._cache.values() 
-                           if current_time - timestamp <= self._ttl)
-        
-        return {
-            "total_entries": len(self._cache),
-            "active_entries": active_entries,
-            "expired_entries": len(self._cache) - active_entries,
-            "max_size": self._max_size,
-            "ttl": self._ttl
-        }
 
+    def get(self, circuit_data: Any, params: Dict[str, Any]) -> Optional[Any]:
+        key = self._generate_key(circuit_data, params)
+        with self._lock:
+            if key in self._cache:
+                result, ts = self._cache[key]
+                if time.time() - ts <= self._ttl:
+                    self._hits += 1
+                    return result
+                del self._cache[key]
+            self._misses += 1
+        return None
+
+    def put(self, circuit_data: Any, params: Dict[str, Any], result: Any) -> None:
+        with self._lock:
+            if len(self._cache) >= self._max_size:
+                oldest = min(self._cache, key=lambda k: self._cache[k][1])
+                del self._cache[oldest]
+            key = self._generate_key(circuit_data, params)
+            self._cache[key] = (result, time.time())
+
+    def invalidate(self, pattern: Optional[str] = None) -> None:
+        with self._lock:
+            if pattern is None:
+                self._cache.clear()
+                return
+            keys = [k for k in self._cache if pattern in k]
+            for k in keys:
+                del self._cache[k]
+
+    def stats(self) -> Dict[str, Any]:
+        with self._lock:
+            now = time.time()
+            active = sum(1 for _, ts in self._cache.values() if now - ts <= self._ttl)
+            total = self._hits + self._misses
+            return {
+                "total_entries": len(self._cache),
+                "active_entries": active,
+                "expired_entries": len(self._cache) - active,
+                "max_size": self._max_size,
+                "ttl": self._ttl,
+                "hits": self._hits,
+                "misses": self._misses,
+                "hit_rate": self._hits / total if total else 0.0,
+            }
+
+
+# ======================================================================
+# Query cache with dependency tracking
+# ======================================================================
 
 class QueryCache:
-    """Specialized cache for quantum query results with query plan awareness."""
-    
+    """Thread-safe query cache with table-dependency tracking."""
+
     def __init__(self, max_size: int = 500, ttl: int = 1800):
-        """
-        Initialize the query cache.
-        
-        Args:
-            max_size: Maximum number of queries to cache
-            ttl: Time-to-live for cache entries in seconds
-        """
         self._result_cache = QuantumResultCache(max_size, ttl)
-        self._query_plans: Dict[str, str] = {}  # Maps query hash to execution plan hash
-    
+        self._query_plans: Dict[str, str] = {}
+        self._query_tables: Dict[str, Set[str]] = {}  # query_hash → {table_names}
+        self._lock = threading.RLock()
+
     def _hash_query(self, query_string: str, query_params: Dict) -> str:
-        """
-        Generate a hash for a query string and its parameters.
-        
-        Args:
-            query_string: SQL-like query string
-            query_params: Query parameters
-            
-        Returns:
-            Hash representing the query
-        """
-        query_data = f"{query_string}:{json.dumps(query_params, sort_keys=True)}"
-        return hashlib.md5(query_data.encode()).hexdigest()
-    
-    def store_plan(self, query_string: str, query_params: Dict, plan_hash: str) -> None:
-        """
-        Store the execution plan hash for a query.
-        
-        Args:
-            query_string: SQL-like query string
-            query_params: Query parameters
-            plan_hash: Hash of the execution plan
-        """
-        query_hash = self._hash_query(query_string, query_params)
-        self._query_plans[query_hash] = plan_hash
-    
+        data = f"{query_string}:{json.dumps(query_params, sort_keys=True)}"
+        return hashlib.md5(data.encode()).hexdigest()
+
+    def store_plan(self, query_string: str, query_params: Dict, plan_hash: str,
+                   tables: Optional[Set[str]] = None) -> None:
+        qh = self._hash_query(query_string, query_params)
+        with self._lock:
+            self._query_plans[qh] = plan_hash
+            if tables:
+                self._query_tables[qh] = tables
+
     def get_result(self, query_string: str, query_params: Dict) -> Optional[Any]:
-        """
-        Get cached result for a query if available.
-        
-        Args:
-            query_string: SQL-like query string
-            query_params: Query parameters
-            
-        Returns:
-            Cached result or None if not found
-        """
-        query_hash = self._hash_query(query_string, query_params)
-        
-        if query_hash in self._query_plans:
-            plan_hash = self._query_plans[query_hash]
-            return self._result_cache.get(plan_hash, query_params)
-        
+        qh = self._hash_query(query_string, query_params)
+        with self._lock:
+            ph = self._query_plans.get(qh)
+        if ph is not None:
+            return self._result_cache.get(ph, query_params)
         return None
-    
-    def store_result(self, query_string: str, query_params: Dict, 
-                    plan_hash: str, result: Any) -> None:
-        """
-        Store result for a query.
-        
-        Args:
-            query_string: SQL-like query string
-            query_params: Query parameters
-            plan_hash: Hash of the execution plan
-            result: Query result to cache
-        """
-        query_hash = self._hash_query(query_string, query_params)
-        self._query_plans[query_hash] = plan_hash
+
+    def store_result(self, query_string: str, query_params: Dict,
+                     plan_hash: str, result: Any,
+                     tables: Optional[Set[str]] = None) -> None:
+        qh = self._hash_query(query_string, query_params)
+        with self._lock:
+            self._query_plans[qh] = plan_hash
+            if tables:
+                self._query_tables[qh] = tables
         self._result_cache.put(plan_hash, query_params, result)
-    
+
     def invalidate_query(self, query_string: str, query_params: Dict) -> None:
-        """
-        Invalidate cache for a specific query.
-        
-        Args:
-            query_string: SQL-like query string
-            query_params: Query parameters
-        """
-        query_hash = self._hash_query(query_string, query_params)
-        if query_hash in self._query_plans:
-            plan_hash = self._query_plans[query_hash]
-            self._result_cache.invalidate(plan_hash)
-            del self._query_plans[query_hash]
-    
+        qh = self._hash_query(query_string, query_params)
+        with self._lock:
+            ph = self._query_plans.pop(qh, None)
+            self._query_tables.pop(qh, None)
+        if ph:
+            self._result_cache.invalidate(ph)
+
     def invalidate_by_table(self, table_name: str) -> None:
-        """
-        Invalidate all cached queries related to a specific table.
-        
-        Args:
-            table_name: Name of the table
-        """
-        # This is a simplified implementation - a real system would need
-        # to track table dependencies for queries
-        keys_to_remove = []
-        for query_hash, plan_hash in self._query_plans.items():
-            # Simple heuristic: if table name appears in the query hash
-            if table_name in query_hash:
-                self._result_cache.invalidate(plan_hash)
-                keys_to_remove.append(query_hash)
-        
-        for key in keys_to_remove:
-            del self._query_plans[key]
+        """Invalidate all cached queries that depend on *table_name*."""
+        with self._lock:
+            to_remove: List[str] = []
+            for qh, tables in self._query_tables.items():
+                if table_name in tables:
+                    to_remove.append(qh)
+            # Fallback: also check query hash string
+            for qh in list(self._query_plans):
+                if table_name in qh and qh not in to_remove:
+                    to_remove.append(qh)
+            for qh in to_remove:
+                ph = self._query_plans.pop(qh, None)
+                self._query_tables.pop(qh, None)
+                if ph:
+                    self._result_cache.invalidate(ph)
 
 
-# Decorator for caching function results
+# ======================================================================
+# Disk-backed cache (SQLite)
+# ======================================================================
+
+class DiskBackedCache:
+    """Persistent cache backed by SQLite with LRU eviction."""
+
+    def __init__(self, db_path: str = "cache.db", max_size: int = 10_000, ttl: int = 7200):
+        self._db_path = db_path
+        self._max_size = max_size
+        self._ttl = ttl
+        self._lock = threading.RLock()
+        self._conn: Optional[sqlite3.Connection] = None
+        self._init_db()
+
+    def _init_db(self) -> None:
+        self._conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS cache (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                created REAL,
+                accessed REAL
+            )
+        """)
+        self._conn.commit()
+
+    def get(self, key: str) -> Optional[Any]:
+        with self._lock:
+            cur = self._conn.execute("SELECT value, created FROM cache WHERE key=?", (key,))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            val, created = row
+            if time.time() - created > self._ttl:
+                self._conn.execute("DELETE FROM cache WHERE key=?", (key,))
+                self._conn.commit()
+                return None
+            self._conn.execute("UPDATE cache SET accessed=? WHERE key=?", (time.time(), key))
+            self._conn.commit()
+            return json.loads(val)
+
+    def put(self, key: str, value: Any) -> None:
+        with self._lock:
+            cnt = self._conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
+            if cnt >= self._max_size:
+                self._conn.execute(
+                    "DELETE FROM cache WHERE key IN (SELECT key FROM cache ORDER BY accessed ASC LIMIT ?)",
+                    (max(1, cnt - self._max_size + 1),),
+                )
+            now = time.time()
+            self._conn.execute(
+                "INSERT OR REPLACE INTO cache (key, value, created, accessed) VALUES (?,?,?,?)",
+                (key, json.dumps(value), now, now),
+            )
+            self._conn.commit()
+
+    def invalidate(self, key: str) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM cache WHERE key=?", (key,))
+            self._conn.commit()
+
+    def clear(self) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM cache")
+            self._conn.commit()
+
+    def close(self) -> None:
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+
+
+# ======================================================================
+# Consistent hash ring (distributed cache prep)
+# ======================================================================
+
+class ConsistentHashRing:
+    """Consistent hash ring for distributing cache entries across nodes."""
+
+    def __init__(self, nodes: Optional[List[str]] = None, replicas: int = 128):
+        self._replicas = replicas
+        self._ring: Dict[int, str] = {}
+        self._sorted_keys: List[int] = []
+        for node in (nodes or []):
+            self.add_node(node)
+
+    def _hash(self, key: str) -> int:
+        return int(hashlib.md5(key.encode()).hexdigest(), 16)
+
+    def add_node(self, node: str) -> None:
+        for i in range(self._replicas):
+            h = self._hash(f"{node}:{i}")
+            self._ring[h] = node
+        self._sorted_keys = sorted(self._ring.keys())
+
+    def remove_node(self, node: str) -> None:
+        for i in range(self._replicas):
+            h = self._hash(f"{node}:{i}")
+            self._ring.pop(h, None)
+        self._sorted_keys = sorted(self._ring.keys())
+
+    def get_node(self, key: str) -> Optional[str]:
+        if not self._ring:
+            return None
+        h = self._hash(key)
+        for k in self._sorted_keys:
+            if k >= h:
+                return self._ring[k]
+        return self._ring[self._sorted_keys[0]]
+
+
+# ======================================================================
+# Probabilistic cache (measurement distributions)
+# ======================================================================
+
+class ProbabilisticCache:
+    """Cache that stores measurement distributions and reuses when confidence
+    is sufficient, avoiding full re-execution."""
+
+    def __init__(self, min_confidence: float = 0.90, max_distributions: int = 512):
+        self._distributions: Dict[str, Dict[str, Any]] = {}
+        self._min_confidence = min_confidence
+        self._max = max_distributions
+        self._lock = threading.RLock()
+
+    @staticmethod
+    def _key(circuit_hash: str) -> str:
+        return circuit_hash
+
+    def store(self, circuit_hash: str, counts: Dict[str, int], shots: int) -> None:
+        dist = {s: c / shots for s, c in counts.items()}
+        with self._lock:
+            if len(self._distributions) >= self._max:
+                oldest = next(iter(self._distributions))
+                del self._distributions[oldest]
+            self._distributions[self._key(circuit_hash)] = {
+                "distribution": dist,
+                "shots": shots,
+                "timestamp": time.time(),
+            }
+
+    def sample(self, circuit_hash: str, n: int = 1) -> Optional[Dict[str, int]]:
+        """Return synthetic counts sampled from cached distribution."""
+        with self._lock:
+            entry = self._distributions.get(self._key(circuit_hash))
+        if entry is None:
+            return None
+        dist = entry["distribution"]
+        if not dist:
+            return None
+        # confidence check: enough shots?
+        if entry["shots"] < 100:
+            return None
+        states = list(dist.keys())
+        probs = [dist[s] for s in states]
+        rng = np.random.default_rng()
+        indices = rng.choice(len(states), size=n, p=probs)
+        result: Dict[str, int] = {}
+        for idx in indices:
+            s = states[idx]
+            result[s] = result.get(s, 0) + 1
+        return result
+
+
+# ======================================================================
+# Circuit deduplication
+# ======================================================================
+
+class CircuitDeduplicator:
+    """Detect equivalent circuits by hashing their gate structure."""
+
+    @staticmethod
+    def structure_hash(circuit) -> str:
+        """Hash a circuit's gate structure to detect equivalence."""
+        parts: List[str] = []
+        if hasattr(circuit, 'all_operations'):
+            for op in circuit.all_operations():
+                gate_name = str(type(op.gate).__name__) if hasattr(op, 'gate') else str(op)
+                qubits = tuple(str(q) for q in op.qubits) if hasattr(op, 'qubits') else ()
+                parts.append(f"{gate_name}({','.join(qubits)})")
+        elif isinstance(circuit, (list, tuple)):
+            parts = [str(g) for g in circuit]
+        else:
+            parts = [str(circuit)]
+        return hashlib.sha256("|".join(parts).encode()).hexdigest()
+
+
+# ======================================================================
+# cache_quantum_result decorator (kept backward-compatible)
+# ======================================================================
+
 def cache_quantum_result(func):
-    """
-    Decorator for caching results of quantum operations.
-    """
-    # Use Python's built-in LRU cache with custom key function
+    """Decorator for caching results of quantum operations."""
+
     @lru_cache(maxsize=128)
     def cached_key(*args, **kwargs):
-        # Generate a stable key from the arguments
-        key_parts = [str(arg) for arg in args]
-        key_parts.extend(f"{k}:{v}" for k, v in sorted(kwargs.items()))
-        return hashlib.md5(":".join(key_parts).encode()).hexdigest()
-    
+        parts = [str(a) for a in args]
+        parts.extend(f"{k}:{v}" for k, v in sorted(kwargs.items()))
+        return hashlib.md5(":".join(parts).encode()).hexdigest()
+
     def wrapper(*args, **kwargs):
         key = cached_key(*args, **kwargs)
-        # Check if this is a cache hit
         if hasattr(wrapper, "_results") and key in wrapper._results:
-            result, timestamp = wrapper._results[key]
-            # Check TTL (30 minutes)
-            if time.time() - timestamp < 1800:
+            result, ts = wrapper._results[key]
+            if time.time() - ts < 1800:
                 return result
-                
-        # Cache miss or expired, compute the result
         result = func(*args, **kwargs)
-        
-        # Initialize cache dictionary if it doesn't exist
         if not hasattr(wrapper, "_results"):
             wrapper._results = {}
-            
-        # Store the result with current timestamp
         wrapper._results[key] = (result, time.time())
-        
         return result
-        
-    # Add cache control methods to the wrapper
+
     def clear_cache():
         if hasattr(wrapper, "_results"):
             wrapper._results.clear()
-    
+
     wrapper.clear_cache = clear_cache
     return wrapper
