@@ -1,4 +1,10 @@
-"""Backward-compatibility shim — delegates to ``qndb.interface.query``."""
+"""
+qndb.interface.query — Query Language Subpackage
+==================================================
+
+Tokenizer, parser, data models for the quantum SQL dialect.
+"""
+
 from qndb.interface.query.enums import QueryType                     # noqa: F401
 from qndb.interface.query.models import QuantumClause, ParsedQuery   # noqa: F401
 from qndb.interface.query.tokenizer import WhereTokenizer            # noqa: F401
@@ -8,9 +14,9 @@ from qndb.interface.query.helpers import (                           # noqa: F40
 )
 from qndb.interface.query.parser import QueryParser                  # noqa: F401
 
-# Legacy private aliases used within the old monolithic module
-_WhereTokenizer = WhereTokenizer
-_WhereParser = WhereParser
-_flatten_conditions = flatten_conditions
-_find_top_level = find_top_level
-_extract_between = extract_between
+__all__ = [
+    "QueryType", "QuantumClause", "ParsedQuery",
+    "WhereTokenizer", "WhereParser",
+    "flatten_conditions", "find_top_level", "extract_between",
+    "QueryParser",
+]
