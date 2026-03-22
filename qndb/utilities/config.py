@@ -24,6 +24,9 @@ DEFAULT_CONFIG_PATHS = [
     '/etc/quantum_db/config.yml'
 ]
 
+# Default .env search paths (closest to cwd first)
+_DOTENV_SEARCH = ['.env', '../.env']
+
 # Environment variable prefix
 ENV_PREFIX = 'QUANTUM_DB_'
 
@@ -212,6 +215,69 @@ class Configuration:
         if count > 0:
             logger.info(f"Loaded {count} configuration values from environment variables")
         
+        return count
+
+    @staticmethod
+    def load_dotenv(path: str = "") -> int:
+        """Load variables from a ``.env`` file into ``os.environ``.
+
+        Uses ``python-dotenv`` when available; otherwise falls back to a
+        minimal built-in parser that handles ``KEY=VALUE`` lines (with
+        optional quoting and ``#`` comments).
+
+        Args:
+            path: Explicit path to a ``.env`` file. When empty, searches
+                  the default locations in ``_DOTENV_SEARCH``.
+
+        Returns:
+            Number of variables loaded.
+        """
+        if path:
+            candidates = [path]
+        else:
+            candidates = list(_DOTENV_SEARCH)
+
+        env_file: str | None = None
+        for candidate in candidates:
+            expanded = os.path.expanduser(candidate)
+            if os.path.isfile(expanded):
+                env_file = expanded
+                break
+
+        if env_file is None:
+            return 0
+
+        # Try python-dotenv first
+        try:
+            from dotenv import load_dotenv as _load  # type: ignore[import-untyped]
+            _load(env_file, override=False)
+            logger.info("Loaded .env via python-dotenv from %s", env_file)
+            # Count lines to report
+            with open(env_file) as fh:
+                return sum(1 for ln in fh if ln.strip() and not ln.strip().startswith("#") and "=" in ln)
+        except ImportError:
+            pass
+
+        # Minimal built-in parser
+        count = 0
+        with open(env_file) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+                # Strip surrounding quotes
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                    value = value[1:-1]
+                if key and key not in os.environ:
+                    os.environ[key] = value
+                    count += 1
+        if count:
+            logger.info("Loaded %d variables from %s (built-in parser)", count, env_file)
         return count
     
     def load_dict(self, config_dict):
@@ -442,6 +508,9 @@ def load_config(config_path=None):
     """
     Load configuration from specified path or default locations.
     
+    Automatically loads ``.env`` files (if present) before reading
+    environment variables so that ``QNDB_*`` keys are available.
+    
     Args:
         config_path (str, optional): Path to config file
         
@@ -464,6 +533,9 @@ def load_config(config_path=None):
         if loaded == 0:
             logger.warning("No configuration files found in default locations")
     
+    # Load .env into os.environ (does not override existing vars)
+    Configuration.load_dotenv()
+
     # Load from environment variables
     _global_config.load_from_env()
     

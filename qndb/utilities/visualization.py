@@ -275,9 +275,7 @@ class StateVisualizer:
         fig = plt.figure(figsize=(5*len(qubit_indices), 5))
         
         for i, qubit_idx in enumerate(qubit_indices):
-            # Extract Bloch sphere coordinates for the qubit
-            # This is a placeholder for actual calculation
-            # In a real system, this would compute reduced density matrix and Bloch coordinates
+            # Extract Bloch sphere coordinates for the qubit via reduced density matrix
             x, y, z = self._calculate_bloch_coordinates(quantum_state, qubit_idx)
             
             # Create 3D subplot
@@ -304,20 +302,45 @@ class StateVisualizer:
         return fig
     
     def _calculate_bloch_coordinates(self, quantum_state, qubit_idx):
-        """Calculate Bloch sphere coordinates for a qubit."""
-        # This is a placeholder for actual implementation
-        # In a real system, this would compute reduced density matrix and Bloch coordinates
-        
-        # Generate mock coordinates for demonstration
-        import random
-        theta = random.uniform(0, np.pi)
-        phi = random.uniform(0, 2*np.pi)
-        
-        x = np.sin(theta) * np.cos(phi)
-        y = np.sin(theta) * np.sin(phi)
-        z = np.cos(theta)
-        
-        return x, y, z
+        """Calculate Bloch sphere coordinates for a qubit.
+
+        Computes the reduced density matrix for the target qubit by
+        tracing out all other subsystems, then derives the Bloch
+        vector from the Pauli expectation values.
+        """
+        state = np.asarray(quantum_state).flatten()
+        n_qubits = int(np.log2(len(state)))
+
+        if n_qubits < 1 or qubit_idx >= n_qubits:
+            return 0.0, 0.0, 1.0  # default |0⟩
+
+        # Build full density matrix
+        rho_full = np.outer(state, np.conj(state))
+
+        # Partial trace to get single-qubit reduced density matrix
+        dim = 2 ** n_qubits
+        rho_full = rho_full.reshape([2] * (2 * n_qubits))
+        # Trace out all qubits except qubit_idx
+        axes_to_trace = [i for i in range(n_qubits) if i != qubit_idx]
+        rho_reduced = rho_full
+        for offset, ax in enumerate(sorted(axes_to_trace)):
+            # trace pairs: axis ax and ax + n_qubits (shifted by removals)
+            a = ax - offset
+            b = a + (n_qubits - offset)
+            rho_reduced = np.trace(rho_reduced, axis1=a, axis2=b)
+
+        rho = rho_reduced.reshape(2, 2)
+
+        # Pauli matrices
+        sigma_x = np.array([[0, 1], [1, 0]], dtype=complex)
+        sigma_y = np.array([[0, -1j], [1j, 0]], dtype=complex)
+        sigma_z = np.array([[1, 0], [0, -1]], dtype=complex)
+
+        x = np.real(np.trace(rho @ sigma_x))
+        y = np.real(np.trace(rho @ sigma_y))
+        z = np.real(np.trace(rho @ sigma_z))
+
+        return float(x), float(y), float(z)
     
     def _draw_bloch_sphere(self, ax):
         """Draw Bloch sphere wireframe."""
