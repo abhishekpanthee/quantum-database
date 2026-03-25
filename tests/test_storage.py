@@ -65,9 +65,9 @@ class TestCircuitCompiler(unittest.TestCase):
         engine.apply_operation("H", [0])
         engine.apply_operation("X", [0, 1])  # controlled-x gate
         
-        # Serialize the circuit
+        # Serialize the circuit (uncompressed for JSON validation)
         logger.info("Serializing circuit")
-        serialized = self.compiler.serialize_circuit(engine.circuit)
+        serialized = self.compiler.serialize_circuit(engine.circuit, compress=False)
         
         # Detailed assertions and debugging
         self.assertIsInstance(serialized, str, "Serialized circuit should be a string")

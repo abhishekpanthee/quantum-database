@@ -227,8 +227,8 @@ class TestLogger(unittest.TestCase):
         except:
             pass
 
-    def test_info_logging(self):
-        """Test info level logging."""
+    def test_info_logging_to_file(self):
+        """Test info level logging to file."""
         import os
         from qndb.utilities.logging import configure_logging
         

@@ -350,6 +350,328 @@ class TestConnectionPool(unittest.TestCase):
                 logger.error(f"Error getting pool stats: {str(e)}")
 
 
+# ======================================================================
+# Enhanced tests
+# ======================================================================
+
+class TestQueryParserPhase2(unittest.TestCase):
+    """Tests for query-language enhancements."""
+
+    def setUp(self):
+        self.parser = QueryParser()
+
+    # ----- WHERE clause enhancements -----
+
+    def test_where_and_or(self):
+        q = "SELECT * FROM t WHERE a = 1 AND (b = 2 OR c = 3)"
+        p = self.parser.parse(q)
+        self.assertIsNotNone(p.where_tree)
+        self.assertEqual(p.where_tree["type"], "and")
+
+    def test_where_not(self):
+        q = "SELECT * FROM t WHERE NOT active = 0"
+        p = self.parser.parse(q)
+        self.assertEqual(p.where_tree["type"], "not")
+
+    def test_where_in(self):
+        q = "SELECT * FROM t WHERE status IN ('a', 'b', 'c')"
+        p = self.parser.parse(q)
+        self.assertEqual(p.where_tree["type"], "in")
+        self.assertEqual(p.where_tree["values"], ['a', 'b', 'c'])
+        self.assertFalse(p.where_tree["negated"])
+
+    def test_where_not_in(self):
+        q = "SELECT * FROM t WHERE id NOT IN (1, 2)"
+        p = self.parser.parse(q)
+        self.assertEqual(p.where_tree["type"], "in")
+        self.assertTrue(p.where_tree["negated"])
+
+    def test_where_between(self):
+        q = "SELECT * FROM t WHERE age BETWEEN 18 AND 65"
+        p = self.parser.parse(q)
+        self.assertEqual(p.where_tree["type"], "between")
+        self.assertEqual(p.where_tree["low"], 18)
+        self.assertEqual(p.where_tree["high"], 65)
+
+    def test_where_like(self):
+        q = "SELECT * FROM t WHERE name LIKE '%john%'"
+        p = self.parser.parse(q)
+        self.assertEqual(p.where_tree["type"], "like")
+        self.assertEqual(p.where_tree["pattern"], "%john%")
+
+    def test_where_is_null(self):
+        q = "SELECT * FROM t WHERE deleted_at IS NULL"
+        p = self.parser.parse(q)
+        self.assertEqual(p.where_tree["type"], "is_null")
+        self.assertFalse(p.where_tree["negated"])
+
+    def test_where_comparison_operators(self):
+        for op in ('=', '!=', '<', '<=', '>', '>='):
+            q = f"SELECT * FROM t WHERE x {op} 5"
+            p = self.parser.parse(q)
+            self.assertEqual(p.where_tree["type"], "comparison")
+            self.assertEqual(p.where_tree["operator"], op)
+
+    # ----- GROUP BY / HAVING -----
+
+    def test_group_by(self):
+        q = "SELECT status, COUNT(*) FROM orders GROUP BY status"
+        p = self.parser.parse(q)
+        self.assertEqual(p.group_by, ["status"])
+
+    def test_group_by_having(self):
+        q = "SELECT dept, COUNT(*) FROM emp GROUP BY dept HAVING COUNT(*) > 5"
+        p = self.parser.parse(q)
+        self.assertEqual(p.group_by, ["dept"])
+        self.assertIsNotNone(p.having)
+
+    # ----- ORDER BY -----
+
+    def test_order_by_multi(self):
+        q = "SELECT * FROM t ORDER BY a ASC, b DESC"
+        p = self.parser.parse(q)
+        self.assertIsNotNone(p.order_by_columns)
+        self.assertEqual(len(p.order_by_columns), 2)
+        self.assertEqual(p.order_by_columns[0]["direction"], "ASC")
+        self.assertEqual(p.order_by_columns[1]["direction"], "DESC")
+
+    # ----- JOIN syntax -----
+
+    def test_inner_join(self):
+        q = "SELECT * FROM a INNER JOIN b ON a.id = b.aid WHERE a.x > 1"
+        p = self.parser.parse(q)
+        self.assertEqual(p.target_table, "a")
+        self.assertIsNotNone(p.join_clauses)
+        self.assertEqual(len(p.join_clauses), 1)
+        self.assertEqual(p.join_clauses[0]["join_type"], "INNER JOIN")
+        self.assertEqual(p.join_clauses[0]["table"], "b")
+
+    def test_left_join(self):
+        q = "SELECT * FROM a LEFT JOIN b ON a.id = b.aid"
+        p = self.parser.parse(q)
+        self.assertEqual(p.join_clauses[0]["join_type"], "LEFT JOIN")
+
+    def test_multiple_joins(self):
+        q = ("SELECT * FROM a INNER JOIN b ON a.id = b.aid "
+             "LEFT JOIN c ON a.id = c.aid")
+        p = self.parser.parse(q)
+        self.assertEqual(len(p.join_clauses), 2)
+
+    # ----- table alias -----
+
+    def test_table_alias(self):
+        q = "SELECT * FROM users AS u WHERE u.id = 1"
+        p = self.parser.parse(q)
+        self.assertEqual(p.target_table, "users")
+        self.assertEqual(p.table_alias, "u")
+
+    # ----- parameterized queries -----
+
+    def test_param_substitution_types(self):
+        q = "SELECT * FROM t WHERE name = :name AND age = :age AND active = :active"
+        p = self.parser.parse(q, params={"name": "O'Brien", "age": 30, "active": True})
+        # name should be escaped
+        self.assertIn("O''Brien", p.raw_query)
+
+    # ----- query validation -----
+
+    def test_validate_having_without_group_by(self):
+        p = ParsedQuery(
+            query_type=QueryType.SELECT,
+            target_table="t",
+            columns=["a"],
+            conditions=[],
+            quantum_clauses=[],
+            having={"type": "comparison", "field": "COUNT(*)", "operator": ">", "value": 5},
+        )
+        errors = self.parser.validate_query(p)
+        self.assertTrue(any("GROUP BY" in e for e in errors))
+
+    def test_validate_insert_mismatch(self):
+        p = ParsedQuery(
+            query_type=QueryType.INSERT,
+            target_table="t",
+            columns=["a", "b"],
+            conditions=[],
+            quantum_clauses=[],
+            values=[1],
+        )
+        errors = self.parser.validate_query(p)
+        self.assertTrue(any("Column count" in e for e in errors))
+
+    # ----- UPDATE / DELETE with complex WHERE -----
+
+    def test_update_complex_where(self):
+        q = "UPDATE t SET x = 10 WHERE a > 1 AND b < 5"
+        p = self.parser.parse(q)
+        self.assertIsNotNone(p.where_tree)
+        self.assertIsNotNone(p.set_clauses)
+        self.assertEqual(p.set_clauses[0]["column"], "x")
+
+    def test_delete_complex_where(self):
+        q = "DELETE FROM t WHERE status IN ('expired', 'revoked')"
+        p = self.parser.parse(q)
+        self.assertEqual(p.where_tree["type"], "in")
+
+
+class TestQueryExecutor(unittest.TestCase):
+    """Tests for the volcano-style query execution engine."""
+
+    def setUp(self):
+        from qndb.interface.query_executor import QueryExecutor
+        self.db = {}
+        self.executor = QueryExecutor(self.db)
+        self.parser = QueryParser()
+
+    def _exec(self, sql, params=None):
+        parsed = self.parser.parse(sql, params)
+        return self.executor.execute(parsed)
+
+    def test_create_and_insert(self):
+        self._exec("CREATE TABLE users (id INT, name TEXT)")
+        self.assertIn("users", self.db)
+        self._exec("INSERT INTO users (id, name) VALUES (1, 'Alice')")
+        self.assertEqual(len(self.db["users"]), 1)
+        self.assertEqual(self.db["users"][0]["name"], "Alice")
+
+    def test_select_filter(self):
+        self._exec("CREATE TABLE items (id INT, price INT)")
+        self._exec("INSERT INTO items (id, price) VALUES (1, 10)")
+        self._exec("INSERT INTO items (id, price) VALUES (2, 20)")
+        self._exec("INSERT INTO items (id, price) VALUES (3, 30)")
+        rows = self._exec("SELECT * FROM items WHERE price > 15")
+        self.assertEqual(len(rows), 2)
+
+    def test_select_limit(self):
+        self._exec("CREATE TABLE nums (n INT)")
+        for i in range(10):
+            self._exec(f"INSERT INTO nums (n) VALUES ({i})")
+        rows = self._exec("SELECT * FROM nums LIMIT 3")
+        self.assertEqual(len(rows), 3)
+
+    def test_select_order_by(self):
+        self._exec("CREATE TABLE vals (v INT)")
+        for v in [3, 1, 2]:
+            self._exec(f"INSERT INTO vals (v) VALUES ({v})")
+        rows = self._exec("SELECT * FROM vals ORDER BY v ASC")
+        self.assertEqual([r["v"] for r in rows], [1, 2, 3])
+
+    def test_update(self):
+        self._exec("CREATE TABLE t (id INT, val INT)")
+        self._exec("INSERT INTO t (id, val) VALUES (1, 10)")
+        self._exec("INSERT INTO t (id, val) VALUES (2, 20)")
+        updated = self._exec("UPDATE t SET val = 99 WHERE id = 1")
+        self.assertEqual(len(updated), 1)
+        self.assertEqual(self.db["t"][0]["val"], 99)
+
+    def test_delete(self):
+        self._exec("CREATE TABLE t (id INT, status TEXT)")
+        self._exec("INSERT INTO t (id, status) VALUES (1, 'active')")
+        self._exec("INSERT INTO t (id, status) VALUES (2, 'expired')")
+        removed = self._exec("DELETE FROM t WHERE status = 'expired'")
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(len(self.db["t"]), 1)
+
+    def test_select_group_by_count(self):
+        self._exec("CREATE TABLE logs (level TEXT)")
+        for lvl in ['INFO', 'ERROR', 'INFO', 'WARN', 'ERROR', 'INFO']:
+            self._exec(f"INSERT INTO logs (level) VALUES ('{lvl}')")
+        rows = self._exec("SELECT level, COUNT(*) FROM logs GROUP BY level")
+        counts = {r["level"]: r["COUNT(*)"] for r in rows}
+        self.assertEqual(counts["INFO"], 3)
+        self.assertEqual(counts["ERROR"], 2)
+
+
+class TestTransactionManagerPhase2(unittest.TestCase):
+    """Tests for transaction manager enhancements."""
+
+    def setUp(self):
+        self.tm = TransactionManager()
+
+    def test_savepoint_create_and_rollback(self):
+        txn = self.tm.begin_transaction()
+        tx = self.tm.get_transaction(txn)
+        tx.add_operation({"type": "write", "resource": "t", "pk": 1, "data": {"v": 1}})
+        self.assertTrue(self.tm.create_savepoint(txn, "sp1"))
+        tx.add_operation({"type": "write", "resource": "t", "pk": 2, "data": {"v": 2}})
+        self.assertEqual(len(tx.operations), 2)
+        self.assertTrue(self.tm.rollback_to_savepoint(txn, "sp1"))
+        self.assertEqual(len(tx.operations), 1)
+
+    def test_wal_records(self):
+        txn = self.tm.begin_transaction()
+        self.tm.commit_transaction(txn)
+        entries = self.tm.wal.entries
+        ops = [e.op_type for e in entries]
+        self.assertIn('BEGIN', ops)
+        self.assertIn('COMMIT', ops)
+
+    def test_mvcc_write_and_snapshot(self):
+        ts1 = 100.0
+        self.tm.mvcc.write("t1", "pk1", {"x": 1}, "txn1", ts1)
+        rows = self.tm.mvcc.read_snapshot("t1", ts1 + 1)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["x"], 1)
+        # overwrite
+        self.tm.mvcc.write("t1", "pk1", {"x": 2}, "txn2", ts1 + 2)
+        # old snapshot still sees version 1
+        rows_old = self.tm.mvcc.read_snapshot("t1", ts1 + 1)
+        self.assertEqual(rows_old[0]["x"], 1)
+        # new snapshot sees version 2
+        rows_new = self.tm.mvcc.read_snapshot("t1", ts1 + 3)
+        self.assertEqual(rows_new[0]["x"], 2)
+
+    def test_lock_timeout(self):
+        self.tm.lock_timeout = 0.05
+        txn1 = self.tm.begin_transaction()
+        txn2 = self.tm.begin_transaction()
+        self.assertTrue(self.tm.acquire_lock(txn1, "res", "WRITE"))
+        # second lock should timeout
+        self.assertFalse(self.tm.acquire_lock(txn2, "res", "WRITE", timeout=0.05))
+
+
+class TestConnectionPoolPhase2(unittest.TestCase):
+    """Tests for connection pool enhancements."""
+
+    def setUp(self):
+        self.pool = ConnectionPool({
+            "max_connections": 5,
+            "min_connections": 1,
+            "host": "localhost",
+            "port": 5000,
+        })
+
+    def test_connection_ping(self):
+        conn = self.pool.get_connection()
+        self.assertTrue(conn.ping())
+        conn.close()
+        self.assertFalse(conn.ping())
+
+    def test_prepared_statement_cache(self):
+        from qndb.interface.connection_pool import PreparedStatementCache
+        cache = PreparedStatementCache(capacity=3)
+        cache.put("q1", "parsed_1")
+        cache.put("q2", "parsed_2")
+        self.assertEqual(cache.size, 2)
+        ps = cache.get("q1")
+        self.assertIsNotNone(ps)
+        self.assertEqual(ps.use_count, 1)
+        # invalidate
+        cache.invalidate("q2")
+        self.assertEqual(cache.size, 1)
+
+    def test_wire_protocol_encode_decode(self):
+        from qndb.interface.connection_pool import (
+            encode_message, decode_header, MSG_QUERY, PROTO_VERSION,
+        )
+        payload = b"SELECT * FROM t"
+        msg = encode_message(MSG_QUERY, payload)
+        ver, mtype, length = decode_header(msg)
+        self.assertEqual(ver, PROTO_VERSION)
+        self.assertEqual(mtype, MSG_QUERY)
+        self.assertEqual(length, len(payload))
+
+
 if __name__ == "__main__":
     logger.info("Starting interface tests")
     unittest.main()
