@@ -17,15 +17,39 @@ extras_require = {
         "isort",
         "flake8",
     ],
+    'dotenv': [
+        "python-dotenv>=1.0.0",
+    ],
+    'ibm': [
+        "qiskit>=1.0",
+        "qiskit-ibm-runtime>=0.20",
+    ],
+    'google': [
+        "cirq-google",
+    ],
+    'ionq': [
+        "requests",
+    ],
+    'braket': [
+        "amazon-braket-sdk>=1.50",
+    ],
+    'hardware': [
+        "python-dotenv>=1.0.0",
+        "qiskit>=1.0",
+        "qiskit-ibm-runtime>=0.20",
+        "cirq-google",
+        "amazon-braket-sdk>=1.50",
+        "requests",
+    ],
 }
 
 setup(
     name="qndb",
-    version="1.0.0",  
+    version="4.0.0",
     author="Abhishek Panthee",
     author_email="contact@abhishekpanthee.com.np",
     description="A quantum database implementation",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     license="MIT",
     url="https://github.com/abhishekpanthee/quantum-database",
@@ -38,7 +62,7 @@ setup(
         "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
     ],
-    python_requires=">=3.8",  # Updated minimum Python version
+    python_requires=">=3.10",
     install_requires=[
         "cirq-core", 
         "numpy",

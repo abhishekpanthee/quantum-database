@@ -4,10 +4,11 @@ on:
   push:
     paths:
       - 'README.md'
-      - '.github/workflows/generate_and_deploy.yml'  # Trigger on workflow file changes
+      - 'docs/**'
+      - '.github/workflows/deploy.yml'
     branches:
-      - main # Only triggers on pushes to main
-  workflow_dispatch: # Manually trigger the workflow
+      - main
+  workflow_dispatch:
 
 jobs:
   generate_and_deploy:
@@ -15,10 +16,10 @@ jobs:
 
     steps:
     - name: Checkout main branch code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
@@ -30,15 +31,28 @@ jobs:
     - name: Generate HTML
       run: python generate_pages.py
 
+    - name: Copy images to output
+      run: |
+        mkdir -p gh-pages-staging
+        cp index.html gh-pages-staging/
+        if [ -d docs/images ]; then
+          mkdir -p gh-pages-staging/docs/images
+          cp docs/images/*.png gh-pages-staging/docs/images/
+        fi
+
     - name: Checkout gh-pages branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: gh-pages
         path: gh-pages-checkout # Checkout gh-pages into a different directory
 
-    - name: Copy index.html to gh-pages
+    - name: Copy built files to gh-pages
       run: |
-        cp index.html gh-pages-checkout/
+        cp gh-pages-staging/index.html gh-pages-checkout/
+        if [ -d gh-pages-staging/docs/images ]; then
+          mkdir -p gh-pages-checkout/docs/images
+          cp gh-pages-staging/docs/images/*.png gh-pages-checkout/docs/images/
+        fi
 
     - name: Configure Git
       run: |
@@ -49,5 +63,6 @@ jobs:
       run: |
         cd gh-pages-checkout/
         git add index.html
-        git commit -m "Update index.html from README.md or workflow file change" || echo "No changes to commit"
+        git add docs/ || true
+        git commit -m "Update site from README.md" || echo "No changes to commit"
         git push origin gh-pages
