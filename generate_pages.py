@@ -1,4 +1,5 @@
 import markdown
+import re
 from bs4 import BeautifulSoup
 
 def extract_toc(md_text):
@@ -46,6 +47,16 @@ def generate_html(md_file, output_file):
     
     # Remove the original TOC from content
     content_soup = BeautifulSoup(content_html, 'html.parser')
+
+    # Convert mermaid code blocks: <pre><code class="language-mermaid"> → <pre class="mermaid">
+    for pre in content_soup.find_all('pre'):
+        code = pre.find('code')
+        if code and code.get('class') and 'language-mermaid' in code.get('class', []):
+            mermaid_text = code.get_text()
+            pre.clear()
+            pre['class'] = ['mermaid']
+            pre.string = mermaid_text
+
     toc_section = content_soup.find(lambda tag: tag.name and tag.name.startswith('h') and 
                                   ("table of contents" in tag.get_text(strip=True).lower() or 
                                    "toc" in tag.get_text(strip=True).lower()))
@@ -349,6 +360,14 @@ def generate_html(md_file, output_file):
                 box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
             }}
             
+            pre.mermaid {{
+                background: transparent;
+                box-shadow: none;
+                padding: 0.5rem;
+                text-align: center;
+                font-family: 'Roboto', sans-serif;
+            }}
+            
             /* Social Icons */
             .social-icons {{
                 display: flex;
@@ -430,6 +449,22 @@ def generate_html(md_file, output_file):
             </div>
             &copy; 2025 Abhishek Panthee. All Rights Reserved.
         </footer>
+        <script type="module">
+            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+            mermaid.initialize({{
+                startOnLoad: true,
+                theme: 'dark',
+                themeVariables: {{
+                    primaryColor: '#bb86fc',
+                    primaryTextColor: '#e0e0e0',
+                    primaryBorderColor: '#3700b3',
+                    lineColor: '#03dac6',
+                    secondaryColor: '#1e1e1e',
+                    tertiaryColor: '#2d2d2d',
+                    fontFamily: 'Roboto, sans-serif'
+                }}
+            }});
+        </script>
     </body>
     </html>
     """

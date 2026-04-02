@@ -312,7 +312,7 @@ flowchart LR
     NORM --> MOTT[Möttönen Algorithm<br/>Compute Ry/Rz angles]
     MOTT --> UCR[Uniformly Controlled<br/>Rotations]
     UCR --> QC[Quantum Circuit<br/>cirq.Circuit]
-    QC --> SV[State Vector<br/>|ψ⟩ = Σ αᵢ|i⟩]
+    QC --> SV[State Vector<br/>#124;ψ⟩ = Σ αᵢ#124;i⟩]
 ```
 
 ---
@@ -380,19 +380,19 @@ flowchart TD
         A1[Input: float vector] --> A2[Normalize to unit L2]
         A2 --> A3[Compute Ry/Rz angles<br/>Möttönen decomposition]
         A3 --> A4[Gray-code CNOT cascade]
-        A4 --> A5[Output: |ψ⟩ = Σ αᵢ|i⟩]
+        A4 --> A5[Output: #124;ψ⟩ = Σ αᵢ#124;i⟩]
     end
 
     subgraph BasisEncoder
         B1[Input: integer k] --> B2[Convert to binary]
         B2 --> B3[Apply X gates<br/>where bit = 1]
-        B3 --> B4[Output: |k⟩]
+        B3 --> B4[Output: #124;k⟩]
     end
 
     subgraph QRAM
-        Q1[Input: address → data map] --> Q2[Bucket-brigade tree]
+        Q1[Input: address-to-data map] --> Q2[Bucket-brigade tree]
         Q2 --> Q3[Route based on<br/>address qubits]
-        Q3 --> Q4[Output: |addr⟩|data⟩]
+        Q3 --> Q4[Output: #124;addr⟩#124;data⟩]
     end
 ```
 
@@ -471,13 +471,13 @@ classDiagram
         +close()
     }
     class QQLParser {
-        +parse(query) → AST
+        +parse(query) AST
     }
     class QQLExecutor {
         +execute(ast, engine)
     }
     class ConnectionPool {
-        +acquire() → Connection
+        +acquire() Connection
         +release(conn)
         +size: int
     }
@@ -509,7 +509,7 @@ flowchart LR
     RW --> CM[CostModel<br/>Estimate quantum<br/>resource cost]
     CM --> PC[PlanCache<br/>MD5 lookup]
     PC --> SC[Scheduler<br/>Priority queue<br/>Resource-aware]
-    SC --> CC[CircuitCutting<br/>Large circuits →<br/>sub-circuits]
+    SC --> CC[CircuitCutting<br/>Large circuits to<br/>sub-circuits]
     CC --> CB[ClassicalBridge<br/>Quantum ↔ Classical<br/>data conversion]
 ```
 
@@ -601,7 +601,7 @@ graph LR
         CS[ColumnarStorage<br/>Column-wise encoding]
         QDT[QuantumDataType<br/>SUPERPOSITION<br/>ENTANGLED<br/>STATE_VECTOR]
         PM[PartitionManager<br/>Hash · Range]
-        TSM[TieredStorageManager<br/>Hot → Warm → Cold]
+        TSM[TieredStorageManager<br/>Hot - Warm - Cold]
     end
 
     subgraph Query
@@ -979,7 +979,7 @@ The workhorse of qndb's search operations. Searches an unsorted database of N it
 
 ```mermaid
 flowchart LR
-    INIT["|+⟩⊗n<br/>Uniform superposition"] --> ORACLE["Oracle<br/>Mark target: |x⟩ → −|x⟩"]
+    INIT["#124;+⟩⊗n<br/>Uniform superposition"] --> ORACLE["Oracle<br/>Mark target with phase flip"]
     ORACLE --> DIFF["Diffusion<br/>Amplify marked amplitude"]
     DIFF --> REPEAT{"Repeat<br/>π/4 · √N times"}
     REPEAT -->|yes| ORACLE
