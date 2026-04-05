@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Test artifacts
+test_db_*/
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.github/
+
+# Docs images (not needed at runtime)
+docs/
+
+# Misc
+*.log
+*.aux
+*.bbl
+*.blg
+*.pdf
