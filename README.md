@@ -1,6 +1,6 @@
 # Quantum Database System (qndb)
 
-![Version](https://img.shields.io/badge/version-4.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.1.1-green.svg)
 ![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
@@ -80,7 +80,7 @@ pip install qndb
 
 # Verify installation
 python -c "import qndb; print(qndb.__version__)"
-# Output: 4.0.0
+# Output: 1.1.1
 ```
 
 Or install from source for development:
@@ -947,7 +947,7 @@ quantum-database/
 ├── examples/                           # 6 runnable example scripts
 ├── tests/                              # 588+ tests across 9 modules
 ├── benchmarks.py                       # 46-benchmark performance suite
-├── setup.py                            # Package setup (v4.0.0)
+├── setup.py                            # Package setup (v1.1.1)
 ├── pyproject.toml                      # Build configuration
 └── LICENSE                             # MIT License
 ```

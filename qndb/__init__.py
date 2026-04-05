@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-__version__ = '4.0.0'
+__version__ = '1.1.1'
 
 
 def configure(

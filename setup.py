@@ -45,7 +45,7 @@ extras_require = {
 
 setup(
     name="qndb",
-    version="4.0.0",
+    version="1.1.1",
     author="Abhishek Panthee",
     author_email="contact@abhishekpanthee.com.np",
     description="A quantum database implementation",

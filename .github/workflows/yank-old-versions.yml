@@ -1,0 +1,60 @@
+name: Yank Old PyPI Versions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  yank:
+    name: Yank old versions from PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Yank old versions via PyPI API
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          pip install requests
+
+          python3 << 'PYEOF'
+          import requests, os, sys
+
+          token = os.environ["PYPI_TOKEN"]
+          versions_to_yank = ["0.1.8", "1.0.0", "4.0.0"]
+
+          for ver in versions_to_yank:
+              # Get list of files for this version
+              resp = requests.get(f"https://pypi.org/pypi/qndb/{ver}/json")
+              if resp.status_code != 200:
+                  print(f"  [SKIP] Version {ver} not found on PyPI (status {resp.status_code})")
+                  continue
+
+              data = resp.json()
+              files = data.get("urls", [])
+              print(f"  Version {ver}: {len(files)} file(s) to yank")
+
+              for f in files:
+                  filename = f["filename"]
+                  # Use the Simple API yank endpoint
+                  yank_url = f"https://upload.pypi.org/legacy/"
+                  resp2 = requests.post(
+                      yank_url,
+                      data={
+                          ":action": "yank",
+                          "name": "qndb",
+                          "version": ver,
+                          "yanked_reason": "Superseded by v1.1.1",
+                      },
+                      auth=("__token__", token),
+                  )
+                  if resp2.status_code in (200, 201, 204):
+                      print(f"    ✓ Yanked {ver}")
+                  else:
+                      print(f"    ✗ Failed to yank {ver}: {resp2.status_code} {resp2.text[:200]}")
+                  break  # Only need one yank call per version
+
+          print("\nDone! Old versions are now yanked on PyPI.")
+          PYEOF
