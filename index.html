@@ -288,6 +288,14 @@
                 box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
             }
             
+            pre.mermaid {
+                background: transparent;
+                box-shadow: none;
+                padding: 0.5rem;
+                text-align: center;
+                font-family: 'Roboto', sans-serif;
+            }
+            
             /* Social Icons */
             .social-icons {
                 display: flex;
@@ -686,7 +694,7 @@ measure_circuit = lq.logical_measure()
 <hr/>
 <h2 id="system-architecture">System Architecture</h2>
 <h3 id="high-level-component-diagram">High-Level Component Diagram</h3>
-<pre><code class="language-mermaid">graph TB
+<pre class="mermaid">graph TB
     subgraph Client Layer
         QQL[QQL Parser &amp; Executor]
         DBC[QuantumDatabaseClient]
@@ -764,9 +772,9 @@ measure_circuit = lq.logical_measure()
     NM --&gt; CONS
     CONS --&gt; SYNC
     QKD --&gt; RBAC
-</code></pre>
+</pre>
 <h3 id="data-flow:-query-lifecycle">Data Flow: Query Lifecycle</h3>
-<pre><code class="language-mermaid">sequenceDiagram
+<pre class="mermaid">sequenceDiagram
     participant User
     participant Client as QuantumDatabaseClient
     participant Parser as QQL Parser
@@ -785,20 +793,20 @@ measure_circuit = lq.logical_measure()
     Cirq-&gt;&gt;Engine: measurement results
     Engine-&gt;&gt;Client: classical result set
     Client-&gt;&gt;User: [{"id": 42, ...}]
-</code></pre>
+</pre>
 <h3 id="encoding-pipeline">Encoding Pipeline</h3>
-<pre><code class="language-mermaid">flowchart LR
+<pre class="mermaid">flowchart LR
     CD[Classical Data&lt;br/&gt;e.g. 3.14, 'hello'] --&gt; NORM[Normalize&lt;br/&gt;L2 norm = 1]
     NORM --&gt; MOTT[Möttönen Algorithm&lt;br/&gt;Compute Ry/Rz angles]
     MOTT --&gt; UCR[Uniformly Controlled&lt;br/&gt;Rotations]
     UCR --&gt; QC[Quantum Circuit&lt;br/&gt;cirq.Circuit]
-    QC --&gt; SV[State Vector&lt;br/&gt;|ψ⟩ = Σ αᵢ|i⟩]
-</code></pre>
+    QC --&gt; SV[State Vector&lt;br/&gt;#124;ψ⟩ = Σ αᵢ#124;i⟩]
+</pre>
 <hr/>
 <h2 id="core-modules-deep-dive">Core Modules Deep Dive</h2>
 <h3 id="1.-quantum-engine-(qndb.core.engine)">1. Quantum Engine (<code>qndb.core.engine</code>)</h3>
 <p>The <strong>QuantumEngine</strong> is the central processing unit. It manages qubit allocation, circuit construction, simulation, and measurement.</p>
-<pre><code class="language-mermaid">classDiagram
+<pre class="mermaid">classDiagram
     class QuantumEngine {
         +int num_qubits
         +List~Qid~ qubits
@@ -829,7 +837,7 @@ measure_circuit = lq.logical_measure()
     QuantumEngine --&gt; SimulatorBackend
     QuantumEngine --&gt; CloudBackend
     QuantumEngine --&gt; NoiseConfig
-</code></pre>
+</pre>
 <p><strong>Key capabilities:</strong>
 - <strong>Gate operations:</strong> H, X, Y, Z, CNOT, CZ, SWAP, Rx, Ry, Rz with arbitrary parameters
 - <strong>Qubit lifecycle:</strong> allocate / deallocate with job-level tracking
@@ -872,26 +880,26 @@ measure_circuit = lq.logical_measure()
 </tr>
 </tbody>
 </table>
-<pre><code class="language-mermaid">flowchart TD
+<pre class="mermaid">flowchart TD
     subgraph AmplitudeEncoder
         A1[Input: float vector] --&gt; A2[Normalize to unit L2]
         A2 --&gt; A3[Compute Ry/Rz angles&lt;br/&gt;Möttönen decomposition]
         A3 --&gt; A4[Gray-code CNOT cascade]
-        A4 --&gt; A5[Output: |ψ⟩ = Σ αᵢ|i⟩]
+        A4 --&gt; A5[Output: #124;ψ⟩ = Σ αᵢ#124;i⟩]
     end
 
     subgraph BasisEncoder
         B1[Input: integer k] --&gt; B2[Convert to binary]
         B2 --&gt; B3[Apply X gates&lt;br/&gt;where bit = 1]
-        B3 --&gt; B4[Output: |k⟩]
+        B3 --&gt; B4[Output: #124;k⟩]
     end
 
     subgraph QRAM
-        Q1[Input: address → data map] --&gt; Q2[Bucket-brigade tree]
+        Q1[Input: address-to-data map] --&gt; Q2[Bucket-brigade tree]
         Q2 --&gt; Q3[Route based on&lt;br/&gt;address qubits]
-        Q3 --&gt; Q4[Output: |addr⟩|data⟩]
+        Q3 --&gt; Q4[Output: #124;addr⟩#124;data⟩]
     end
-</code></pre>
+</pre>
 <h3 id="3.-operations-(qndb.core.operations)">3. Operations (<code>qndb.core.operations</code>)</h3>
 <p>Quantum circuit implementations of fundamental database operations:</p>
 <ul>
@@ -913,7 +921,7 @@ measure_circuit = lq.logical_measure()
 </ul>
 <h3 id="5.-advanced-algorithms-(qndb.core.algorithms)">5. Advanced Algorithms (<code>qndb.core.algorithms</code>)</h3>
 <p>20 algorithm classes organized in 4 modules:</p>
-<pre><code class="language-mermaid">graph LR
+<pre class="mermaid">graph LR
     subgraph "Search &amp; Optimization"
         QAOA[QAOASolver]
         VQE[VQESolver]
@@ -945,7 +953,7 @@ measure_circuit = lq.logical_measure()
         ANN[QuantumANN]
         QC[QuantumCompressor]
     end
-</code></pre>
+</pre>
 <p><strong>Complexity advantages:</strong></p>
 <table>
 <thead>
@@ -990,20 +998,20 @@ measure_circuit = lq.logical_measure()
 </tbody>
 </table>
 <h3 id="6.-interface-&amp;-query-language-(qndb.interface)">6. Interface &amp; Query Language (<code>qndb.interface</code>)</h3>
-<pre><code class="language-mermaid">classDiagram
+<pre class="mermaid">classDiagram
     class QuantumDatabaseClient {
         +connect()
         +execute(query: str)
         +close()
     }
     class QQLParser {
-        +parse(query) → AST
+        +parse(query) AST
     }
     class QQLExecutor {
         +execute(ast, engine)
     }
     class ConnectionPool {
-        +acquire() → Connection
+        +acquire() Connection
         +release(conn)
         +size: int
     }
@@ -1017,7 +1025,7 @@ measure_circuit = lq.logical_measure()
     QuantumDatabaseClient --&gt; QQLExecutor
     QuantumDatabaseClient --&gt; ConnectionPool
     QuantumDatabaseClient --&gt; TransactionManager
-</code></pre>
+</pre>
 <p><strong>QQL (Quantum Query Language)</strong> supports:
 - DDL: <code>CREATE TABLE</code>, <code>DROP TABLE</code>, <code>ALTER TABLE</code>
 - DML: <code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code>, <code>DELETE</code>
@@ -1025,14 +1033,14 @@ measure_circuit = lq.logical_measure()
 - Quantum-specific: <code>USING GROVER</code>, <code>ENCODING AMPLITUDE</code>, <code>WITH ERROR_CORRECTION</code></p>
 <h3 id="7.-middleware-pipeline-(qndb.middleware)">7. Middleware Pipeline (<code>qndb.middleware</code>)</h3>
 <p>The middleware sits between the query interface and the core engine, providing optimization, scheduling, caching, and classical-quantum bridging:</p>
-<pre><code class="language-mermaid">flowchart LR
+<pre class="mermaid">flowchart LR
     Q[Parsed Query] --&gt; RW[RewriteEngine&lt;br/&gt;Predicate pushdown&lt;br/&gt;Common subexpression]
     RW --&gt; CM[CostModel&lt;br/&gt;Estimate quantum&lt;br/&gt;resource cost]
     CM --&gt; PC[PlanCache&lt;br/&gt;MD5 lookup]
     PC --&gt; SC[Scheduler&lt;br/&gt;Priority queue&lt;br/&gt;Resource-aware]
-    SC --&gt; CC[CircuitCutting&lt;br/&gt;Large circuits →&lt;br/&gt;sub-circuits]
+    SC --&gt; CC[CircuitCutting&lt;br/&gt;Large circuits to&lt;br/&gt;sub-circuits]
     CC --&gt; CB[ClassicalBridge&lt;br/&gt;Quantum ↔ Classical&lt;br/&gt;data conversion]
-</code></pre>
+</pre>
 <ul>
 <li><strong><code>QueryOptimizer</code></strong> — Multi-level optimization (statistics-driven, cost-model, plan caching, circuit cutting)</li>
 <li><strong><code>TaskScheduler</code></strong> — Priority-based job scheduling with qubit-aware resource management</li>
@@ -1040,7 +1048,7 @@ measure_circuit = lq.logical_measure()
 <li><strong><code>ClassicalBridge</code></strong> — Bidirectional conversion between classical data structures and quantum circuits</li>
 </ul>
 <h3 id="8.-distributed-database-(qndb.distributed)">8. Distributed Database (<code>qndb.distributed</code>)</h3>
-<pre><code class="language-mermaid">graph TB
+<pre class="mermaid">graph TB
     subgraph Cluster
         N1[Node 1&lt;br/&gt;Leader]
         N2[Node 2&lt;br/&gt;Follower]
@@ -1071,7 +1079,7 @@ measure_circuit = lq.logical_measure()
     VC --&gt; CRDT
     CRDT --&gt; CR
     N1 --&gt; AS
-</code></pre>
+</pre>
 <p><strong>Key classes:</strong>
 - <strong><code>NodeManager</code></strong> — Node registration, health checks (phi-accrual failure detector), service discovery, transport layer (gRPC-style channels)
 - <strong><code>QuantumRaft</code></strong> — Raft consensus with quantum-enhanced leader election (uses quantum random number generation for term voting)
@@ -1079,7 +1087,7 @@ measure_circuit = lq.logical_measure()
 - <strong><code>QuantumStateSynchronizer</code></strong> — Replicates quantum state across nodes with configurable consistency levels (ONE, QUORUM, ALL)
 - <strong><code>ClusterManager</code></strong> — Auto-scaling, rolling upgrades, backup management</p>
 <h3 id="9.-security-(qndb.security)">9. Security (<code>qndb.security</code>)</h3>
-<pre><code class="language-mermaid">flowchart TB
+<pre class="mermaid">flowchart TB
     subgraph Encryption
         QKD_MOD[QuantumEncryption&lt;br/&gt;One-time pad&lt;br/&gt;Quantum-safe keys]
     end
@@ -1100,7 +1108,7 @@ measure_circuit = lq.logical_measure()
     ACM --&gt; ROLES
     ACM --&gt; ACL
     ACL --&gt; AL
-</code></pre>
+</pre>
 <ul>
 <li><strong>Quantum Key Distribution</strong> — Generates cryptographic keys using quantum randomness (BB84-style protocol)</li>
 <li><strong>RBAC</strong> — Role-based access control with default roles (admin, reader, writer) and permission enum (READ, WRITE, DELETE, ADMIN, EXECUTE, CREATE, ALTER, DROP)</li>
@@ -1108,12 +1116,12 @@ measure_circuit = lq.logical_measure()
 </ul>
 <h3 id="10.-enterprise-features-(qndb.enterprise)">10. Enterprise Features (<code>qndb.enterprise</code>)</h3>
 <p>26 classes for production database workloads:</p>
-<pre><code class="language-mermaid">graph LR
+<pre class="mermaid">graph LR
     subgraph Storage
         CS[ColumnarStorage&lt;br/&gt;Column-wise encoding]
         QDT[QuantumDataType&lt;br/&gt;SUPERPOSITION&lt;br/&gt;ENTANGLED&lt;br/&gt;STATE_VECTOR]
         PM[PartitionManager&lt;br/&gt;Hash · Range]
-        TSM[TieredStorageManager&lt;br/&gt;Hot → Warm → Cold]
+        TSM[TieredStorageManager&lt;br/&gt;Hot - Warm - Cold]
     end
 
     subgraph Query
@@ -1140,10 +1148,10 @@ measure_circuit = lq.logical_measure()
         GQL[GraphQLLayer]
         ME[MetricsExporter&lt;br/&gt;Prometheus · OpenTelemetry]
     end
-</code></pre>
+</pre>
 <h3 id="11.-fault-tolerant-operations-(qndb.fault_tolerant)">11. Fault-Tolerant Operations (<code>qndb.fault_tolerant</code>)</h3>
 <p>19 classes for error-corrected quantum database operations:</p>
-<pre><code class="language-mermaid">graph TB
+<pre class="mermaid">graph TB
     subgraph "9.1 Operations"
         SCSL[SurfaceCodeStorageLayer&lt;br/&gt;Rotated surface code patches&lt;br/&gt;Syndrome extraction &amp; decoding]
         LQ[LogicalQubit&lt;br/&gt;Transversal X · Z · H · S · T&lt;br/&gt;Gates operate on code patches]
@@ -1181,9 +1189,9 @@ measure_circuit = lq.logical_measure()
     QIG --&gt; ED
     ED --&gt; QRC
     QRC --&gt; BPL
-</code></pre>
+</pre>
 <p><strong>Surface code error correction flow:</strong></p>
-<pre><code class="language-mermaid">flowchart LR
+<pre class="mermaid">flowchart LR
     DQ[Data Qubits&lt;br/&gt;d × d grid] --&gt; SE[Syndrome&lt;br/&gt;Extraction]
     SE --&gt; XA[X Stabilizers&lt;br/&gt;Detect bit-flips]
     SE --&gt; ZA[Z Stabilizers&lt;br/&gt;Detect phase-flips]
@@ -1191,7 +1199,7 @@ measure_circuit = lq.logical_measure()
     ZA --&gt; DEC
     DEC --&gt; COR[Apply Corrections&lt;br/&gt;X or Z gates]
     COR --&gt; DQ
-</code></pre>
+</pre>
 <h3 id="12.-utilities-(qndb.utilities)">12. Utilities (<code>qndb.utilities</code>)</h3>
 <ul>
 <li><strong><code>Configuration</code></strong> — YAML/JSON config loading, <code>.env</code> auto-detection, environment variable integration</li>
@@ -1585,13 +1593,13 @@ qndb.configure(braket_device_arn="arn:aws:braket:::device/qpu/ionq/Harmony")
 # Load from .env file
 qndb.configure(env_file=".env")
 </code></pre>
-<pre><code class="language-mermaid">graph LR
+<pre class="mermaid">graph LR
     QNDB[qndb Engine] --&gt; SIM[Cirq Local Simulator&lt;br/&gt;Default — no setup needed]
     QNDB --&gt; IBM[IBM Quantum&lt;br/&gt;Eagle 127q · Heron 133q]
     QNDB --&gt; GOOG[Google Quantum AI&lt;br/&gt;Sycamore 53q]
     QNDB --&gt; IONQ[IonQ&lt;br/&gt;Harmony 11q · Aria 25q]
     QNDB --&gt; BRAKET[AWS Braket&lt;br/&gt;Multi-vendor access]
-</code></pre>
+</pre>
 <hr/>
 <h2 id="project-directory">Project Directory</h2>
 <pre><code>quantum-database/
@@ -1673,13 +1681,13 @@ qndb.configure(env_file=".env")
 - Quantum key distribution (provably secure communication)</p>
 <h3 id="grover's-algorithm">Grover's Algorithm</h3>
 <p>The workhorse of qndb's search operations. Searches an unsorted database of N items in $O(\sqrt{N})$ oracle queries:</p>
-<pre><code class="language-mermaid">flowchart LR
-    INIT["|+⟩⊗n&lt;br/&gt;Uniform superposition"] --&gt; ORACLE["Oracle&lt;br/&gt;Mark target: |x⟩ → −|x⟩"]
+<pre class="mermaid">flowchart LR
+    INIT["#124;+⟩⊗n&lt;br/&gt;Uniform superposition"] --&gt; ORACLE["Oracle&lt;br/&gt;Mark target with phase flip"]
     ORACLE --&gt; DIFF["Diffusion&lt;br/&gt;Amplify marked amplitude"]
     DIFF --&gt; REPEAT{"Repeat&lt;br/&gt;π/4 · √N times"}
     REPEAT --&gt;|yes| ORACLE
     REPEAT --&gt;|no| MEASURE["Measure&lt;br/&gt;Get target with ~97% prob"]
-</code></pre>
+</pre>
 <h3 id="surface-codes">Surface Codes</h3>
 <p>qndb's fault-tolerant layer uses <strong>rotated surface codes</strong> — the leading candidate for scalable quantum error correction:</p>
 <ul>
@@ -1729,6 +1737,22 @@ python benchmarks.py      # Run benchmarks
             </div>
             &copy; 2025 Abhishek Panthee. All Rights Reserved.
         </footer>
+        <script type="module">
+            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+            mermaid.initialize({
+                startOnLoad: true,
+                theme: 'dark',
+                themeVariables: {
+                    primaryColor: '#bb86fc',
+                    primaryTextColor: '#e0e0e0',
+                    primaryBorderColor: '#3700b3',
+                    lineColor: '#03dac6',
+                    secondaryColor: '#1e1e1e',
+                    tertiaryColor: '#2d2d2d',
+                    fontFamily: 'Roboto, sans-serif'
+                }
+            });
+        </script>
     </body>
     </html>
     
